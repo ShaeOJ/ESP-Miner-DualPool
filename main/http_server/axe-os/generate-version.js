@@ -6,7 +6,7 @@ try {
     version = require('child_process').execSync('git describe --tags --always --dirty').toString().trim();
 } catch (e) {
     // Fallback if not in a git repository
-    version = 'v2.12.0-DualPool';
+    version = 'v2.12.0-DualPool-2';
 }
 
 const outputPath = path.join(__dirname, 'dist', 'axe-os', 'version.txt');
