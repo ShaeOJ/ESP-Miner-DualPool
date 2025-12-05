@@ -1,183 +1,299 @@
-[![](https://dcbadge.vercel.app/api/server/3E8ca2dkcC)](https://discord.gg/osmu)
-
-![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/bitaxeorg/esp-miner/total)
-![GitHub commit activity](https://img.shields.io/github/commit-activity/t/bitaxeorg/esp-miner)
-![GitHub contributors](https://img.shields.io/github/contributors/bitaxeorg/esp-miner)
-![Alt](https://repobeats.axiom.co/api/embed/70889479b1e002c18a184b05bc5cbf2ed3718579.svg "Repobeats analytics image")
-
-# ESP-Miner
-esp-miner is open source ESP32 firmware for the [Bitaxe](https://github.com/bitaxeorg/bitaxe)
-
-If you are looking for premade images to load on your Bitaxe, check out the [latest release](https://github.com/bitaxeorg/ESP-Miner/releases/latest) page. Maybe you want [instructions](https://github.com/bitaxeorg/ESP-Miner/blob/master/flashing.md) for loading factory images.
-
-# Bitaxetool
-We also have a command line python tool for flashing Bitaxe and updating the config called Bitaxetool 
-
-**Bitaxetool Requires Python3.4 or later and pip**
-
-Install bitaxetool from pip. pip is included with Python 3.4 but if you need to install it check <https://pip.pypa.io/en/stable/installation/>
-
 ```
-pip install --upgrade bitaxetool
-```
-The bitaxetool includes all necessary library for flashing the binaries to the Bitaxe Hardware.
-
-**Notes**
- - The bitaxetool does not work properly with esptool v5.x.x, esptool v4.9.0 or earlier is required.
- - Bitaxetool v0.6.1 - locked to using esptool v4.9.0
-
-```
-pip install bitaxetool==0.6.1
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                                                                              ║
+║    ██████╗ ██╗   ██╗ █████╗ ██╗         ██████╗  ██████╗  ██████╗ ██╗        ║
+║    ██╔══██╗██║   ██║██╔══██╗██║         ██╔══██╗██╔═══██╗██╔═══██╗██║        ║
+║    ██║  ██║██║   ██║███████║██║         ██████╔╝██║   ██║██║   ██║██║        ║
+║    ██║  ██║██║   ██║██╔══██║██║         ██╔═══╝ ██║   ██║██║   ██║██║        ║
+║    ██████╔╝╚██████╔╝██║  ██║███████╗    ██║     ╚██████╔╝╚██████╔╝███████╗   ║
+║    ╚═════╝  ╚═════╝ ╚═╝  ╚═╝╚══════╝    ╚═╝      ╚═════╝  ╚═════╝ ╚══════╝   ║
+║                                                                              ║
+║              ESP-MINER DUAL POOL EDITION v2.12.0-DualPool-2                  ║
+║                                                                              ║
+║                    [ VAULT-TEC APPROVED FIRMWARE ]                           ║
+║                                                                              ║
+╚══════════════════════════════════════════════════════════════════════════════╝
 ```
 
-- Flash a "factory" image to a Bitaxe to reset to factory settings. Make sure to choose an image built for your hardware version (401) in this case:
-
 ```
-bitaxetool --firmware ./esp-miner-factory-401-v2.4.2.bin
-```
-- Flash just the NVS config to a bitaxe:
-
-```
-bitaxetool --config ./config-401.cvs
-```
-- Flash both a factory image _and_ a config to your Bitaxe: note the settings in the config file will overwrite the config already baked into the factory image:
-
-```
-bitaxetool --config ./config-401.cvs --firmware ./esp-miner-factory-401-v2.4.2.bin
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ PIP-BOY 3000 MARK IV              BITAXE MINING TERMINAL              [////] │
+├──────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  STATUS: OPERATIONAL                    RADIATION: NOMINAL                   │
+│  HASH RATE: ████████████░░ 78%          CAPS EARNED: CALCULATING...          │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
 ```
 
-## AxeOS API
-The esp-miner UI is called AxeOS and provides an API to expose actions and information.
+## VAULT-TEC NOTICE
 
-For more details take a look at [`main/http_server/openapi.yaml`](./main/http_server/openapi.yaml).
+> *"Prepare for the future of decentralized mining!"*
 
-Available API endpoints:
-  
-**GET**
+This is a **modified fork** of the official ESP-Miner firmware, enhanced with **Dual Pool Mining** capabilities. Split your hashrate between two pools simultaneously - because in the wasteland, diversification is survival.
 
-* `/api/system/info` Get system information
-* `/api/system/asic` Get ASIC settings information
-* `/api/system/statistics` Get system statistics (data logging should be activated)
-* `/api/system/statistics/dashboard` Get system statistics for dashboard
-* `/api/system/wifi/scan` Scan for available Wi-Fi networks
+---
 
-**POST**
+## SPECIAL FEATURES
 
-* `/api/system/restart` Restart the system
-* `/api/system/identify` Identify the device
-* `/api/system/OTA` Update system firmware
-* `/api/system/OTAWWW` Update AxeOS
+```
+╔═══════════════════════════════════════════════════════════════╗
+║  [*] DUAL POOL MINING                                         ║
+║      > Mine to TWO pools simultaneously                       ║
+║      > Configurable hashrate split (1-99%)                    ║
+║      > Independent connection management                      ║
+║                                                               ║
+║  [*] ENHANCED MONITORING                                      ║
+║      > Per-pool share statistics                              ║
+║      > Dual block header display                              ║
+║      > Real-time pool status indicators                       ║
+║                                                               ║
+║  [*] OLED DISPLAY SUPPORT                                     ║
+║      > Alternating pool info display                          ║
+║      > Primary/Secondary pool cycling                         ║
+║      > ScriptSig display for both pools                       ║
+╚═══════════════════════════════════════════════════════════════╝
+```
 
-**PATCH**
+---
 
-* `/api/system` Update system settings
+## QUICK START GUIDE
 
-### API examples in `curl`:
+### Installation
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ STEP 1: Download the latest release                         │
+│ STEP 2: Flash esp-miner.bin to your Bitaxe                  │
+│ STEP 3: Flash www.bin for the web interface                 │
+│ STEP 4: Configure your pools in AxeOS                       │
+│ STEP 5: Enable Dual Pool Mode                               │
+│ STEP 6: Set your hashrate balance                           │
+│ STEP 7: Start mining to the future!                         │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Flashing with Bitaxetool
 
 ```bash
-# Get system information
-curl http://YOUR-BITAXE-IP/api/system/info
+pip install --upgrade bitaxetool
 
-# Get ASIC settings information
-curl http://YOUR-BITAXE-IP/api/system/asic
-
-# Get system statistics
-curl http://YOUR-BITAXE-IP/api/system/statistics
-
-# Get dashboard statistics
-curl http://YOUR-BITAXE-IP/api/system/statistics/dashboard
-
-# Get available Wi-Fi networks
-curl http://YOUR-BITAXE-IP/api/system/wifi/scan
-
-
-# Restart the system
-curl -X POST http://YOUR-BITAXE-IP/api/system/restart
-
-# Let the device say Hi!
-curl -X POST http://YOUR-BITAXE-IP/api/system/identify
-
-# Update system firmware
-curl -X POST \
-     -H "Content-Type: application/octet-stream" \
-     --data-binary "@esp-miner.bin" \
-     http://YOUR-BITAXE-IP/api/system/OTA
-
-# Update AxeOS
-curl -X POST \
-     -H "Content-Type: application/octet-stream" \
-     --data-binary "@www.bin" \
-     http://YOUR-BITAXE-IP/api/system/OTAWWW
-
-
-# Update system settings
-curl -X PATCH http://YOUR-BITAXE-IP/api/system \
-     -H "Content-Type: application/json" \
-     -d '{"fanspeed": "desired_speed_value"}'
+# Flash firmware
+bitaxetool --firmware ./esp-miner-factory-xxx-v2.12.0-DualPool-2.bin
 ```
 
-## Administration
+---
 
-The firmware hosts a small web server on port 80 for administrative purposes. Once the Bitaxe device is connected to the local network, the admin web front end may be accessed via a web browser connected to the same network at `http://<IP>`, replacing `IP` with the LAN IP address of the Bitaxe device, or `http://bitaxe`, provided your network supports mDNS configuration.
+## DUAL POOL CONFIGURATION
 
-### Recovery
+```
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                         POOL CONFIGURATION                                   │
+├──────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  PRIMARY POOL (Pool 1)                                                       │
+│  ├─ URL: stratum+tcp://pool1.example.com:3333                                │
+│  ├─ User: your_wallet.worker1                                                │
+│  └─ Status: [CONNECTED]                                                      │
+│                                                                              │
+│  SECONDARY POOL (Pool 2)                                                     │
+│  ├─ URL: stratum+tcp://pool2.example.com:3333                                │
+│  ├─ User: your_wallet.worker2                                                │
+│  └─ Status: [CONNECTED]                                                      │
+│                                                                              │
+│  MODE: [■] Dual Pool    [ ] Failover                                         │
+│                                                                              │
+│  HASHRATE BALANCE                                                            │
+│  Primary ████████████████████░░░░░░░░░░ 70%                                  │
+│  Secondary ██████████░░░░░░░░░░░░░░░░░░ 30%                                  │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+```
 
-In the event that the admin web front end is inaccessible, for example because of an unsuccessful firmware update (`www.bin`), a recovery page can be accessed at `http://<IP>/recovery`.
+### Pool Modes
 
-### Unlock Settings
+| Mode | Description |
+|------|-------------|
+| **Failover** | Secondary pool used only when primary fails |
+| **Dual Pool** | Both pools receive work simultaneously based on balance |
 
-In order to unlock the Input fields for ASIC Frequency and ASIC Core Voltage you need to append `?oc` to the end of the settings tab URL in your browser. Be aware that without additional cooling overclocking can overheat and/or damage your Bitaxe.
+### Balance Settings
 
-## Development
+- Set percentage from **1-99%** for primary pool
+- Secondary pool receives the remainder
+- Example: 70% primary = 30% secondary
+
+---
+
+## WEB INTERFACE (AxeOS)
+
+```
+┌──────────────────────────────────────────────────────────────────────────────┐
+│  AxeOS DUAL POOL DASHBOARD                                                   │
+├────────────────────┬────────────────────┬────────────────────────────────────┤
+│  HASHRATE          │  SHARES            │  BLOCK HEADERS                     │
+│  ───────────       │  ──────            │  ─────────────                     │
+│  Total: 520 GH/s   │  Primary:          │  ● Primary Pool                    │
+│                    │    Accepted: 1,250 │    Height: 926496                  │
+│  Primary (70%):    │    Rejected: 5     │    Diff: 149.30 T                  │
+│    364 GH/s        │                    │    Tag: FirePool                   │
+│                    │  Secondary:        │                                    │
+│  Secondary (30%):  │    Accepted: 520   │  ● Secondary Pool                  │
+│    156 GH/s        │    Rejected: 2     │    Height: 926496                  │
+│                    │                    │    Diff: 148.95 T                  │
+│                    │                    │    Tag: Ocean                      │
+└────────────────────┴────────────────────┴────────────────────────────────────┘
+```
+
+---
+
+## API ENDPOINTS
+
+### System Info (includes dual pool data)
+
+```bash
+curl http://YOUR-BITAXE-IP/api/system/info
+```
+
+**New fields in response:**
+```json
+{
+  "poolMode": 1,
+  "poolBalance": 70,
+  "primaryPoolConnected": true,
+  "secondaryPoolConnected": true,
+  "poolDifficultySecondary": 1024,
+  "responseTimeSecondary": 45.2,
+  "blockHeightSecondary": 926496,
+  "scriptsigSecondary": "Ocean.xyz",
+  "networkDifficultySecondary": 148950000000000,
+  "dualPoolStats": {
+    "primaryAccepted": 1250,
+    "primaryRejected": 5,
+    "secondaryAccepted": 520,
+    "secondaryRejected": 2
+  }
+}
+```
+
+### Configure Dual Pool Mode
+
+```bash
+curl -X PATCH http://YOUR-BITAXE-IP/api/system \
+     -H "Content-Type: application/json" \
+     -d '{
+       "poolMode": 1,
+       "poolBalance": 70,
+       "fallbackStratumURL": "pool2.example.com",
+       "fallbackStratumPort": 3333,
+       "fallbackStratumUser": "wallet.worker2"
+     }'
+```
+
+---
+
+## OLED DISPLAY
+
+In Dual Pool Mode, the mining screen alternates between pools:
+
+```
+┌────────────────────┐      ┌────────────────────┐
+│ Primary Pool       │      │ Secondary Pool     │
+│ Block: 926496      │  =>  │ Block: 926496      │
+│ Diff: 149.30T      │      │ Diff: 148.95T      │
+│ FirePool           │      │ Ocean.xyz          │
+└────────────────────┘      └────────────────────┘
+```
+
+---
+
+## BUILDING FROM SOURCE
 
 ### Prerequisites
 
-- Install the ESP-IDF toolchain from https://docs.espressif.com/projects/esp-idf/en/stable/esp32/get-started/
-- Install nodejs/npm from https://nodejs.org/en/download
-- (Optional) Install the ESP-IDF extension for VSCode from https://marketplace.visualstudio.com/items?itemName=espressif.esp-idf-extension
-
-### Building
-
-At the root of the repository, run:
 ```
-idf.py build && ./merge_bin.sh ./esp-miner-merged.bin
+┌─────────────────────────────────────────────────────────────┐
+│ REQUIRED COMPONENTS:                                        │
+│ [■] ESP-IDF v5.5                                            │
+│ [■] Node.js / npm                                           │
+│ [■] Python 3.4+                                             │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-Note: the merge_bin.sh script is a custom script that merges the bootloader, partition table, and the application binary into a single file.
+### Build Commands
 
-Note: if using VSCode, you may have to configure the settings.json file to match your esp hardware version. For example, if your bitaxe has something other than an esp32-s3, you will need to change the version in the `.vscode/settings.json` file.
+```bash
+# Build Angular frontend
+cd main/http_server/axe-os
+npm install
+npm run build
 
-### Flashing
+# Build ESP firmware (in ESP-IDF environment)
+cd /path/to/ESP-Miner
+idf.py build
 
-With the bitaxe connected to your computer via USB, run:
+# Create merged binary
+./merge_bin.sh ./esp-miner-merged.bin
+```
+
+---
+
+## TROUBLESHOOTING
 
 ```
-bitaxetool --config ./config-xxx.cvs --firmware ./esp-miner-merged.bin
+╔═══════════════════════════════════════════════════════════════╗
+║  VAULT-TEC DIAGNOSTIC TERMINAL                                ║
+╠═══════════════════════════════════════════════════════════════╣
+║                                                               ║
+║  ERROR: Secondary pool not connecting                         ║
+║  > Check fallback pool URL and port                           ║
+║  > Verify network connectivity                                ║
+║  > Ensure pool supports stratum v1                            ║
+║                                                               ║
+║  ERROR: Version mismatch warning                              ║
+║  > Flash both esp-miner.bin AND www.bin                       ║
+║  > Versions must match exactly                                ║
+║                                                               ║
+║  ERROR: Hashrate not splitting correctly                      ║
+║  > Check poolBalance setting (1-99)                           ║
+║  > Verify both pools are connected                            ║
+║  > Allow 1-2 minutes for balance to stabilize                 ║
+║                                                               ║
+╚═══════════════════════════════════════════════════════════════╝
 ```
 
-where xxx is the config file for your hardware version. You can see the list of available config files in the root of the repository.
+---
 
-A custom board version is also possible with `config-custom.cvs`. A custom board needs to be based on an existing `devicemodel` and `asicmodel`.
+## CREDITS
 
-**Notes:** 
-  - If you are developing within a dev container, you will need to run the bitaxetool command from outside the container. Otherwise, you will get an error about the device not being found.
-  - Some Bitaxe versions can't directly connect to a USB-C port. If yours is affected use a USB-A adapter as a workaround. More about it [here](https://github.com/bitaxeorg/bitaxeGamma/issues/37).
-  - Only ESP32-S3-WROOM-1 module type N16R8 (16MB Flash, 8MB Octal SPI PSRAM) is supported. This model number should be visible on the ESP32 module. Other module types without PSRAM or with Quad SPI PSRAM will not work with the normal firmware. More about it [here](https://github.com/bitaxeorg/ESP-Miner/issues/826).
+```
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                                                                              │
+│  Original ESP-Miner by Bitaxe Organization                                   │
+│  https://github.com/bitaxeorg/esp-miner                                      │
+│                                                                              │
+│  Dual Pool Modifications by ShaeOJ                                           │
+│  https://github.com/ShaeOJ/ESP-Miner-DualPool                                │
+│                                                                              │
+│  "War never changes, but mining does."                                       │
+│                                    - Vault-Tec Mining Division               │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+```
 
-### Wi-Fi routers
+---
 
-There are some Wi-Fi routers that will block mining, ASUS Wi-Fi routers & some TP-Link Wi-Fi routers for example.
-If you find that your not able to mine / have no hash rate you will need to check the Wi-Fi routers settings and disable the following;
+## LICENSE
 
-1/ AiProtection
+This project inherits the license from the original ESP-Miner project.
 
-2/ IoT 
-
-If your Wi-Fi router has both of these options you might have to disable them both.
-
-If your still having problems here, check other settings within the Wi-Fi router and the bitaxe device, this includes the URL for
-the Stratum Host and Stratum Port.
-
-## Attributions
-
-The display font is Portfolio 6x8 from https://int10h.org/oldschool-pc-fonts/ by VileR.
+```
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                                                                              ║
+║                    VAULT-TEC INDUSTRIES                                      ║
+║           "Preparing for the Future of Mining"                               ║
+║                                                                              ║
+║                         Est. 2077                                            ║
+║                                                                              ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+```
