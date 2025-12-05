@@ -10,6 +10,7 @@
 #include "display.h"
 #include "connect.h"
 #include "esp_timer.h"
+#include "tasks/stratum_task.h"
 
 typedef enum {
     SCR_SELF_TEST,
@@ -54,6 +55,7 @@ static lv_obj_t *overheat_ip_addr_label;
 
 static lv_obj_t *asic_status_label;
 
+static lv_obj_t *mining_pool_label;
 static lv_obj_t *mining_block_height_label;
 static lv_obj_t *mining_network_difficulty_label;
 static lv_obj_t *mining_scriptsig_label;
@@ -103,6 +105,8 @@ static uint64_t current_shares_rejected;
 static uint64_t current_work_received;
 static int8_t current_rssi_value;
 static int current_block_height;
+static int current_block_height_secondary;
+static bool mining_screen_show_secondary;  // Toggle for dual pool mode
 
 static bool self_test_finished;
 
@@ -325,14 +329,14 @@ static lv_obj_t * create_scr_stats() {
 static lv_obj_t * create_scr_mining() {
     lv_obj_t * scr = create_flex_screen(4);
 
+    mining_pool_label = lv_label_create(scr);
+    lv_label_set_text(mining_pool_label, "Block Header");
+
     mining_block_height_label = lv_label_create(scr);
     lv_label_set_text(mining_block_height_label, "Block: --");
 
     mining_network_difficulty_label = lv_label_create(scr);
-    lv_label_set_text(mining_network_difficulty_label, "Difficulty: --");
-
-    lv_obj_t *label3 = lv_label_create(scr);
-    lv_label_set_text(label3, "Scriptsig:");
+    lv_label_set_text(mining_network_difficulty_label, "Diff: --");
 
     mining_scriptsig_label = lv_label_create(scr);
     lv_label_set_text(mining_scriptsig_label, "--");
@@ -398,7 +402,22 @@ static bool screen_show(screen_t screen)
 
 void screen_next()
 {
-    screen_t next_scr = get_current_screen();
+    screen_t current = get_current_screen();
+    screen_t next_scr = current;
+
+    // In dual pool mode, toggle between primary/secondary on mining screen
+    if (current == SCR_MINING && stratum_is_dual_pool_mode(GLOBAL_STATE)) {
+        if (!mining_screen_show_secondary) {
+            // Switch to showing secondary pool, stay on mining screen
+            mining_screen_show_secondary = true;
+            current_screen_time_ms = 0;
+            return;
+        } else {
+            // Already showed secondary, reset and move to next screen
+            mining_screen_show_secondary = false;
+        }
+    }
+
     do {
         next_scr++;
 
@@ -549,17 +568,75 @@ static void screen_update_cb(lv_timer_t * timer)
         current_chip_temp = power_management->chip_temp_avg;
     }
 
-    if (current_block_height != GLOBAL_STATE->block_height) {
-        lv_label_set_text_fmt(mining_block_height_label, "Block: %d", GLOBAL_STATE->block_height);
-        current_block_height = GLOBAL_STATE->block_height;
-    }
-    
-    if (strcmp(&lv_label_get_text(mining_network_difficulty_label)[9], GLOBAL_STATE->network_diff_string) != 0) {
-        lv_label_set_text_fmt(mining_network_difficulty_label, "Difficulty: %s", GLOBAL_STATE->network_diff_string);
-    }
+    // In dual pool mode, alternate between showing primary and secondary pool info
+    if (stratum_is_dual_pool_mode(GLOBAL_STATE)) {
+        // Show which pool we're displaying
+        const char *pool_label = mining_screen_show_secondary ? "Secondary Pool" : "Primary Pool";
+        if (strcmp(lv_label_get_text(mining_pool_label), pool_label) != 0) {
+            lv_label_set_text(mining_pool_label, pool_label);
+        }
 
-    if (GLOBAL_STATE->scriptsig != NULL && strcmp(lv_label_get_text(mining_scriptsig_label), GLOBAL_STATE->scriptsig) != 0) {
-        lv_label_set_text(mining_scriptsig_label, GLOBAL_STATE->scriptsig);
+        if (mining_screen_show_secondary) {
+            // Show secondary pool info
+            if (current_block_height_secondary != GLOBAL_STATE->block_height_secondary) {
+                if (GLOBAL_STATE->block_height_secondary > 0) {
+                    lv_label_set_text_fmt(mining_block_height_label, "Block: %d", GLOBAL_STATE->block_height_secondary);
+                } else {
+                    lv_label_set_text(mining_block_height_label, "Block: --");
+                }
+                current_block_height_secondary = GLOBAL_STATE->block_height_secondary;
+            }
+
+            if (strcmp(&lv_label_get_text(mining_network_difficulty_label)[6], GLOBAL_STATE->network_diff_string_secondary) != 0) {
+                if (GLOBAL_STATE->network_diff_string_secondary[0] != '\0') {
+                    lv_label_set_text_fmt(mining_network_difficulty_label, "Diff: %s", GLOBAL_STATE->network_diff_string_secondary);
+                } else {
+                    lv_label_set_text(mining_network_difficulty_label, "Diff: --");
+                }
+            }
+
+            if (GLOBAL_STATE->scriptsig_secondary != NULL) {
+                if (strcmp(lv_label_get_text(mining_scriptsig_label), GLOBAL_STATE->scriptsig_secondary) != 0) {
+                    lv_label_set_text(mining_scriptsig_label, GLOBAL_STATE->scriptsig_secondary);
+                }
+            } else {
+                if (strcmp(lv_label_get_text(mining_scriptsig_label), "--") != 0) {
+                    lv_label_set_text(mining_scriptsig_label, "--");
+                }
+            }
+        } else {
+            // Show primary pool info
+            if (current_block_height != GLOBAL_STATE->block_height) {
+                lv_label_set_text_fmt(mining_block_height_label, "Block: %d", GLOBAL_STATE->block_height);
+                current_block_height = GLOBAL_STATE->block_height;
+            }
+
+            if (strcmp(&lv_label_get_text(mining_network_difficulty_label)[6], GLOBAL_STATE->network_diff_string) != 0) {
+                lv_label_set_text_fmt(mining_network_difficulty_label, "Diff: %s", GLOBAL_STATE->network_diff_string);
+            }
+
+            if (GLOBAL_STATE->scriptsig != NULL && strcmp(lv_label_get_text(mining_scriptsig_label), GLOBAL_STATE->scriptsig) != 0) {
+                lv_label_set_text(mining_scriptsig_label, GLOBAL_STATE->scriptsig);
+            }
+        }
+    } else {
+        // Single pool mode - show standard block header
+        if (strcmp(lv_label_get_text(mining_pool_label), "Block Header") != 0) {
+            lv_label_set_text(mining_pool_label, "Block Header");
+        }
+
+        if (current_block_height != GLOBAL_STATE->block_height) {
+            lv_label_set_text_fmt(mining_block_height_label, "Block: %d", GLOBAL_STATE->block_height);
+            current_block_height = GLOBAL_STATE->block_height;
+        }
+
+        if (strcmp(&lv_label_get_text(mining_network_difficulty_label)[6], GLOBAL_STATE->network_diff_string) != 0) {
+            lv_label_set_text_fmt(mining_network_difficulty_label, "Diff: %s", GLOBAL_STATE->network_diff_string);
+        }
+
+        if (GLOBAL_STATE->scriptsig != NULL && strcmp(lv_label_get_text(mining_scriptsig_label), GLOBAL_STATE->scriptsig) != 0) {
+            lv_label_set_text(mining_scriptsig_label, GLOBAL_STATE->scriptsig);
+        }
     }
 
     // Update WiFi RSSI periodically

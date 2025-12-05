@@ -99,6 +99,11 @@ export interface ISystemInfo {
     scriptsig?: string,
     networkDifficulty?: number,
 
+    // Secondary pool block header info (for dual pool mode)
+    blockHeightSecondary?: number,
+    scriptsigSecondary?: string,
+    networkDifficultySecondary?: number,
+
     hashrateMonitor: IHashrateMonitor,
     blockFound: number,
 

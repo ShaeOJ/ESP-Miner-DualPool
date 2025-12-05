@@ -554,34 +554,87 @@
 
         <div class="col-12 md:col-4">
             <div class="card">
-                <h4 class="white-space-nowrap overflow-hidden text-overflow-ellipsis">Block Header</h4>
+                <!-- Dual Pool Mode: Show both pools' block headers -->
+                <ng-container *ngIf="isDualPoolMode(info); else singleBlockHeader">
+                    <h4 class="mb-3">Block Headers (Dual Mode)</h4>
 
-                <div class="flex flex-nowrap">
-                    <div class="col-fixed-width text-500">
-                        <span>Height</span>
+                    <!-- Primary Pool Block Header -->
+                    <div class="mb-3 pb-3 border-bottom-1 border-200">
+                        <div class="flex align-items-center gap-2 mb-2">
+                            <i class="pi pi-circle-fill text-xs text-green-500"></i>
+                            <span class="font-medium text-green-600">Primary</span>
+                        </div>
+                        <div class="flex flex-nowrap text-sm">
+                            <div class="col-fixed-width text-500">Height</div>
+                            <div>{{ info.blockHeight }}</div>
+                        </div>
+                        <div class="flex flex-nowrap text-sm">
+                            <div class="col-fixed-width text-500">Difficulty</div>
+                            <div *ngIf="info.networkDifficulty" class="cursor-pointer" pTooltip="{{info.networkDifficulty | number:'1.0-0'}}" tooltipPosition="bottom">
+                                {{ info.networkDifficulty | diffSuffix }}
+                            </div>
+                        </div>
+                        <div class="flex flex-nowrap align-items-baseline text-sm">
+                            <div class="col-fixed-width text-500">Scriptsig</div>
+                            <div class="code">{{ info.scriptsig }}</div>
+                        </div>
                     </div>
+
+                    <!-- Secondary Pool Block Header -->
                     <div>
-                        {{ info.blockHeight }}
+                        <div class="flex align-items-center gap-2 mb-2">
+                            <i class="pi pi-circle-fill text-xs text-blue-500"></i>
+                            <span class="font-medium text-blue-600">Secondary</span>
+                        </div>
+                        <div class="flex flex-nowrap text-sm">
+                            <div class="col-fixed-width text-500">Height</div>
+                            <div>{{ info.blockHeightSecondary ?? '--' }}</div>
+                        </div>
+                        <div class="flex flex-nowrap text-sm">
+                            <div class="col-fixed-width text-500">Difficulty</div>
+                            <div *ngIf="info.networkDifficultySecondary" class="cursor-pointer" pTooltip="{{info.networkDifficultySecondary | number:'1.0-0'}}" tooltipPosition="bottom">
+                                {{ info.networkDifficultySecondary | diffSuffix }}
+                            </div>
+                            <div *ngIf="!info.networkDifficultySecondary">--</div>
+                        </div>
+                        <div class="flex flex-nowrap align-items-baseline text-sm">
+                            <div class="col-fixed-width text-500">Scriptsig</div>
+                            <div class="code">{{ info.scriptsigSecondary ?? '--' }}</div>
+                        </div>
                     </div>
-                </div>
+                </ng-container>
 
-                <div class="flex flex-nowrap">
-                    <div class="col-fixed-width text-500">
-                        <span>Difficulty</span>
-                    </div>
-                    <div *ngIf="info.networkDifficulty" class="cursor-pointer" pTooltip="{{info.networkDifficulty | number:'1.0-0'}}" tooltipPosition="bottom">
-                        {{ info.networkDifficulty | diffSuffix }}
-                    </div>
-                </div>
+                <!-- Single Pool / Failover Mode -->
+                <ng-template #singleBlockHeader>
+                    <h4 class="white-space-nowrap overflow-hidden text-overflow-ellipsis">Block Header</h4>
 
-                <div class="flex flex-nowrap align-items-baseline">
-                    <div class="col-fixed-width text-500">
-                        <span>Scriptsig</span>
+                    <div class="flex flex-nowrap">
+                        <div class="col-fixed-width text-500">
+                            <span>Height</span>
+                        </div>
+                        <div>
+                            {{ info.blockHeight }}
+                        </div>
                     </div>
-                    <div class="code">
-                        {{ info.scriptsig }}
+
+                    <div class="flex flex-nowrap">
+                        <div class="col-fixed-width text-500">
+                            <span>Difficulty</span>
+                        </div>
+                        <div *ngIf="info.networkDifficulty" class="cursor-pointer" pTooltip="{{info.networkDifficulty | number:'1.0-0'}}" tooltipPosition="bottom">
+                            {{ info.networkDifficulty | diffSuffix }}
+                        </div>
                     </div>
-                </div>
+
+                    <div class="flex flex-nowrap align-items-baseline">
+                        <div class="col-fixed-width text-500">
+                            <span>Scriptsig</span>
+                        </div>
+                        <div class="code">
+                            {{ info.scriptsig }}
+                        </div>
+                    </div>
+                </ng-template>
             </div>
         </div>
 
