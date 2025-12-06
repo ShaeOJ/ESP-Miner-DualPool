@@ -17,6 +17,76 @@
 
 ---
 
+## [v2.12.0-DualPool-3] - 2024-12-06
+
+```
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ VAULT-TEC FIRMWARE UPDATE LOG                                                │
+│ Classification: HARDWARE COMPATIBILITY                                       │
+│ Priority: HIGH                                                               │
+└──────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Added
+
+```
+╔═══════════════════════════════════════════════════════════════╗
+║  TCH-BITAXE SUPRA HEX (701/702) SUPPORT                       ║
+╠═══════════════════════════════════════════════════════════════╣
+║                                                               ║
+║  [+] INVERTED FAN POLARITY SUPPORT                            ║
+║      ├─ EMC2302 driver updated for polarity inversion         ║
+║      ├─ PWM polarity register (0x2A) configuration            ║
+║      ├─ Inverted percentage calculation for fan speed         ║
+║      └─ Proper dual fan operation on Supra Hex boards         ║
+║                                                               ║
+║  [+] DEVICE CONFIGURATION                                     ║
+║      ├─ invert_fan_polarity field in DeviceConfig             ║
+║      ├─ NVS config key for invertfanpol setting               ║
+║      ├─ Board 701/702 default: inverted polarity enabled      ║
+║      └─ Custom board support via NVS override                 ║
+║                                                               ║
+║  [+] CONFIGURATION FILES                                      ║
+║      ├─ config-701.cvs updated with invertfanpol=1            ║
+║      └─ config-702.cvs updated with invertfanpol=1            ║
+║                                                               ║
+╚═══════════════════════════════════════════════════════════════╝
+```
+
+### Board Support
+
+**TCH-Bitaxe Supra Hex (Board 701/702):**
+| Feature | Value |
+|---------|-------|
+| ASIC | BM1368 x6 |
+| Default Frequency | 490 MHz |
+| Default Voltage | 1166 mV |
+| Max Power | 120W |
+| Voltage Domains | 3 |
+| Fan Controller | EMC2302 (dual fan, inverted polarity) |
+| Temperature Sensor | TMP1075 |
+| Power Regulator | TPS546 |
+
+### Changed
+
+- `EMC2302_init()` now accepts `invert_polarity` parameter
+- `EMC2302_set_fan_speed()` inverts percentage when polarity is inverted
+- `thermal.c` passes device config polarity setting to EMC2302 init
+
+### Files Modified
+
+- `main/device_config.h` - Added invert_fan_polarity to DeviceConfig
+- `main/device_config.c` - Load invert_fan_polarity from NVS
+- `main/nvs_config.h` - Added NVS_CONFIG_INVERT_FAN_POLARITY
+- `main/nvs_config.c` - Added invertfanpol NVS setting
+- `main/thermal/EMC2302.h` - Updated init function signature
+- `main/thermal/EMC2302.c` - Polarity inversion implementation
+- `main/thermal/thermal.c` - Pass polarity to EMC2302 init
+- `config-701.cvs` - Added invertfanpol=1
+- `config-702.cvs` - Added invertfanpol=1
+
+---
+
 ## [v2.12.0-DualPool-2] - 2024-12-05
 
 ```

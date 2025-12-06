@@ -26,6 +26,7 @@ static const char * TAG = "EMC2302";
 static i2c_master_dev_handle_t EMC2302_dev_handle;
 static uint8_t fan1_multiplier;
 static uint8_t fan2_multiplier;
+static bool invert_fan_polarity = false;
 
 static esp_err_t set_fan_range(uint8_t reg_addr, fan_config_range_t range, uint8_t * multiplier)
 {
@@ -43,13 +44,21 @@ static esp_err_t set_fan_range(uint8_t reg_addr, fan_config_range_t range, uint8
 /**
  * @brief Initialize the EMC2302 sensor.
  *
+ * @param invert_polarity If true, invert the PWM polarity for fans (for Supra Hex boards)
  * @return esp_err_t ESP_OK on success, or an error code on failure.
  */
-esp_err_t EMC2302_init()
+esp_err_t EMC2302_init(bool invert_polarity)
 {
     ESP_RETURN_ON_ERROR(i2c_bitaxe_add_device(EMC2302_I2CADDR_DEFAULT, &EMC2302_dev_handle, TAG), TAG, "Failed to add device");
 
-    ESP_LOGI(TAG, "EMC2302 init");
+    ESP_LOGI(TAG, "EMC2302 init (invert_polarity=%d)", invert_polarity);
+
+    invert_fan_polarity = invert_polarity;
+
+    // Set PWM polarity if inverted (for Supra Hex 701/702 boards)
+    if (invert_fan_polarity) {
+        ESP_RETURN_ON_ERROR(i2c_bitaxe_register_write_byte(EMC2302_dev_handle, EMC2302_PWM_POLARITY, 0b00011111), TAG, "Failed to set PWM polarity");
+    }
 
     // Set the minimum fan speed measured and reported to 500 RPM
     ESP_RETURN_ON_ERROR(set_fan_range(EMC2302_FAN1_CONFIG1, RNG_500_RPM, &fan1_multiplier), TAG, "Failed to set fan 1 config");
@@ -65,7 +74,9 @@ esp_err_t EMC2302_init()
  */
 esp_err_t EMC2302_set_fan_speed(float percent)
 {
-    uint8_t setting = (uint8_t) (255.0 * percent);
+    // When polarity is inverted, we need to invert the percentage
+    float effective_percent = invert_fan_polarity ? (1.0f - percent) : percent;
+    uint8_t setting = (uint8_t) (255.0f * effective_percent);
     ESP_RETURN_ON_ERROR(i2c_bitaxe_register_write_byte(EMC2302_dev_handle, EMC2302_FAN1_SETTING, setting), TAG, "Failed to set fan speed");
     ESP_RETURN_ON_ERROR(i2c_bitaxe_register_write_byte(EMC2302_dev_handle, EMC2302_FAN2_SETTING, setting), TAG, "Failed to set fan speed");
     return ESP_OK;

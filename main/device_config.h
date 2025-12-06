@@ -71,6 +71,7 @@ typedef struct {
     bool DS4432U : 1;
     bool INA260  : 1;
     bool TPS546  : 1;
+    bool invert_fan_polarity : 1;
     // test values
     uint16_t power_consumption_target;
 } DeviceConfig;
@@ -134,8 +135,8 @@ static const DeviceConfig default_configs[] = {
     { .board_version = "600",  .family = FAMILY_GAMMA,       .EMC2101 = true, .emc_ideality_factor = 0x24, .emc_beta_compensation = 0x00,                     .TPS546 = true,                                                           .power_consumption_target = 19, },
     { .board_version = "601",  .family = FAMILY_GAMMA,       .EMC2101 = true, .emc_ideality_factor = 0x24, .emc_beta_compensation = 0x00,                     .TPS546 = true,                                                           .power_consumption_target = 19, },
     { .board_version = "602",  .family = FAMILY_GAMMA,       .EMC2101 = true, .emc_ideality_factor = 0x24, .emc_beta_compensation = 0x00,                     .TPS546 = true,                                                           .power_consumption_target = 22, },
-    { .board_version = "701",  .family = FAMILY_SUPRA_HEX,   .EMC2302 = true, .TMP1075 = true,                                            .temp_offset = 10,  .TPS546 = true,                                                           .power_consumption_target = 90, },
-    { .board_version = "702",  .family = FAMILY_SUPRA_HEX,   .EMC2302 = true, .TMP1075 = true,                                            .temp_offset = 10,  .TPS546 = true,                                                           .power_consumption_target = 90, },
+    { .board_version = "701",  .family = FAMILY_SUPRA_HEX,   .EMC2302 = true, .TMP1075 = true,                                            .temp_offset = 10,  .TPS546 = true, .invert_fan_polarity = true,                              .power_consumption_target = 90, },
+    { .board_version = "702",  .family = FAMILY_SUPRA_HEX,   .EMC2302 = true, .TMP1075 = true,                                            .temp_offset = 10,  .TPS546 = true, .invert_fan_polarity = true,                              .power_consumption_target = 90, },
     { .board_version = "800",  .family = FAMILY_GAMMA_TURBO, .EMC2103 = true,                                                             .temp_offset = -10, .TPS546 = true,                                                           .power_consumption_target = 12, },
 };
 

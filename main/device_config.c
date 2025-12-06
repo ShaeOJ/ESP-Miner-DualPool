@@ -70,6 +70,7 @@ esp_err_t device_config_init(void * pvParameters)
     GLOBAL_STATE->DEVICE_CONFIG.INA260 = nvs_config_get_bool(NVS_CONFIG_INA260);
     GLOBAL_STATE->DEVICE_CONFIG.TPS546 = nvs_config_get_bool(NVS_CONFIG_TPS546);
     GLOBAL_STATE->DEVICE_CONFIG.TMP1075 = nvs_config_get_bool(NVS_CONFIG_TMP1075);
+    GLOBAL_STATE->DEVICE_CONFIG.invert_fan_polarity = nvs_config_get_bool(NVS_CONFIG_INVERT_FAN_POLARITY);
 
     // test values
     GLOBAL_STATE->DEVICE_CONFIG.power_consumption_target = nvs_config_get_u16(NVS_CONFIG_POWER_CONSUMPTION_TARGET);

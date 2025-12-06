@@ -25,7 +25,7 @@ esp_err_t Thermal_init(DeviceConfig * DEVICE_CONFIG)
         ESP_RETURN_ON_ERROR(EMC2103_init(DEVICE_CONFIG->temp_offset), TAG, "Failed to initialise EMC2103");
     }
     if (DEVICE_CONFIG->EMC2302) {
-        ESP_RETURN_ON_ERROR(EMC2302_init(), TAG, "Failed to initialise EMC2302");
+        ESP_RETURN_ON_ERROR(EMC2302_init(DEVICE_CONFIG->invert_fan_polarity), TAG, "Failed to initialise EMC2302");
     }
     if (DEVICE_CONFIG->TMP1075) {
         ESP_RETURN_ON_ERROR(TMP1075_init(DEVICE_CONFIG->temp_offset), TAG, "Failed to initialise TMP1075");

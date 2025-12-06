@@ -104,6 +104,7 @@ static Settings settings[NVS_CONFIG_COUNT] = {
     [NVS_CONFIG_INA260]                                = {.nvs_key_name = "INA260",          .type = TYPE_BOOL},
     [NVS_CONFIG_TPS546]                                = {.nvs_key_name = "TPS546",          .type = TYPE_BOOL},
     [NVS_CONFIG_TMP1075]                               = {.nvs_key_name = "TMP1075",         .type = TYPE_BOOL},
+    [NVS_CONFIG_INVERT_FAN_POLARITY]                   = {.nvs_key_name = "invertfanpol",    .type = TYPE_BOOL},
     [NVS_CONFIG_POWER_CONSUMPTION_TARGET]              = {.nvs_key_name = "power_cons_tgt",  .type = TYPE_U16},
 };
 
