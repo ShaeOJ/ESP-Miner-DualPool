@@ -13,7 +13,7 @@
 
 static const char *TAG = "create_jobs_task";
 
-#define QUEUE_LOW_WATER_MARK 10 // Adjust based on your requirements
+#define QUEUE_LOW_WATER_MARK 6 // Optimized for faster job dispatch
 
 static bool should_generate_more_work(GlobalState *GLOBAL_STATE);
 static void generate_work_for_pool(GlobalState *GLOBAL_STATE, mining_notify *notification, uint64_t extranonce_2, uint32_t difficulty, uint8_t pool_id);
@@ -78,7 +78,7 @@ void create_jobs_task(void *pvParameters)
         // Check if we need more work
         if (!should_generate_more_work(GLOBAL_STATE))
         {
-            vTaskDelay(100 / portTICK_PERIOD_MS);
+            vTaskDelay(50 / portTICK_PERIOD_MS);
             continue;
         }
 
@@ -121,7 +121,7 @@ void create_jobs_task(void *pvParameters)
                 extranonce_2_primary++;
             } else {
                 // No work available, wait
-                vTaskDelay(100 / portTICK_PERIOD_MS);
+                vTaskDelay(50 / portTICK_PERIOD_MS);
             }
         } else {
             // Single pool mode (or failover) - only use primary
@@ -136,7 +136,7 @@ void create_jobs_task(void *pvParameters)
                     extranonce_2_primary = 0;
                     ESP_LOGI(TAG, "Work dequeued: %s", notification->job_id);
                 } else {
-                    vTaskDelay(100 / portTICK_PERIOD_MS);
+                    vTaskDelay(50 / portTICK_PERIOD_MS);
                 }
             }
         }

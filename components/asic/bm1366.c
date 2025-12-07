@@ -285,7 +285,7 @@ void BM1366_send_work(void * pvParameters, bm_job * next_bm_job)
     BM1366_job job;
     id = (id + 8) % 128;
     job.job_id = id;
-    job.num_midstates = 0x01;
+    job.num_midstates = next_bm_job->num_midstates > 0 ? next_bm_job->num_midstates : 0x01;
     memcpy(&job.starting_nonce, &next_bm_job->starting_nonce, 4);
     memcpy(&job.nbits, &next_bm_job->target, 4);
     memcpy(&job.ntime, &next_bm_job->ntime, 4);
