@@ -42,9 +42,9 @@ double pid_input = 0.0;
 double pid_output = 0.0;
 double min_fan_pct;
 double pid_setPoint;
-double pid_p = 15.0;        
-double pid_i = 0.2;
-double pid_d = 3.0;
+double pid_p = 18.0;
+double pid_i = 0.3;
+double pid_d = 3.5;
 double pid_d_startup = 20.0;  // Higher D value for startup
 
 bool pid_startup_phase = true;

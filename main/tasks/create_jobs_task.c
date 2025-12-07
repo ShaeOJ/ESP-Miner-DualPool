@@ -78,7 +78,7 @@ void create_jobs_task(void *pvParameters)
         // Check if we need more work
         if (!should_generate_more_work(GLOBAL_STATE))
         {
-            vTaskDelay(50 / portTICK_PERIOD_MS);
+            vTaskDelay(30 / portTICK_PERIOD_MS);
             continue;
         }
 
@@ -121,7 +121,7 @@ void create_jobs_task(void *pvParameters)
                 extranonce_2_primary++;
             } else {
                 // No work available, wait
-                vTaskDelay(50 / portTICK_PERIOD_MS);
+                vTaskDelay(30 / portTICK_PERIOD_MS);
             }
         } else {
             // Single pool mode (or failover) - only use primary
@@ -136,7 +136,7 @@ void create_jobs_task(void *pvParameters)
                     extranonce_2_primary = 0;
                     ESP_LOGI(TAG, "Work dequeued: %s", notification->job_id);
                 } else {
-                    vTaskDelay(50 / portTICK_PERIOD_MS);
+                    vTaskDelay(30 / portTICK_PERIOD_MS);
                 }
             }
         }

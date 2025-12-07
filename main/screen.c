@@ -276,12 +276,18 @@ static lv_obj_t * create_scr_bitaxe_logo(const char * name, const char * board_v
     return scr;
 }
 
-static lv_obj_t * create_scr_osmu_logo() {
+static lv_obj_t * create_scr_fire_pool() {
     lv_obj_t * scr = lv_obj_create(NULL);
 
-    lv_obj_t *img = lv_img_create(scr);
-    lv_img_set_src(img, &osmu_logo);
-    lv_obj_align(img, LV_ALIGN_CENTER, 0, 0);
+    // Fire Pool title
+    lv_obj_t *label1 = lv_label_create(scr);
+    lv_label_set_text(label1, "FIRE POOL");
+    lv_obj_align(label1, LV_ALIGN_CENTER, 0, -8);
+
+    // Vault-TEC subtitle
+    lv_obj_t *label2 = lv_label_create(scr);
+    lv_label_set_text(label2, "VAULT-TEC");
+    lv_obj_align(label2, LV_ALIGN_CENTER, 0, 4);
 
     return scr;
 }
@@ -683,7 +689,7 @@ esp_err_t screen_start(void * pvParameters)
             screens[SCR_FIRMWARE] = create_scr_firmware();
             screens[SCR_CONNECTION] = create_scr_connection(SYSTEM_MODULE->ssid, SYSTEM_MODULE->ap_ssid);
             screens[SCR_BITAXE_LOGO] = create_scr_bitaxe_logo(GLOBAL_STATE->DEVICE_CONFIG.family.name, GLOBAL_STATE->DEVICE_CONFIG.board_version);
-            screens[SCR_OSMU_LOGO] = create_scr_osmu_logo();
+            screens[SCR_OSMU_LOGO] = create_scr_fire_pool();
             screens[SCR_URLS] = create_scr_urls();
             screens[SCR_STATS] = create_scr_stats();
             screens[SCR_MINING] = create_scr_mining();
