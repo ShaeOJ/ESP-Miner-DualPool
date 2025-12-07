@@ -78,7 +78,7 @@ void create_jobs_task(void *pvParameters)
         // Check if we need more work
         if (!should_generate_more_work(GLOBAL_STATE))
         {
-            vTaskDelay(30 / portTICK_PERIOD_MS);
+            vTaskDelay(50 / portTICK_PERIOD_MS);
             continue;
         }
 
