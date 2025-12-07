@@ -936,6 +936,13 @@ static esp_err_t GET_system_info(httpd_req_t * req)
         cJSON_AddNumberToObject(root, "networkDifficulty", GLOBAL_STATE->network_nonce_diff);
     }
 
+    // Secondary pool block header info
+    if (GLOBAL_STATE->block_height_secondary > 0) {
+        cJSON_AddNumberToObject(root, "blockHeightSecondary", GLOBAL_STATE->block_height_secondary);
+        cJSON_AddStringToObject(root, "scriptsigSecondary", GLOBAL_STATE->scriptsig_secondary);
+        cJSON_AddNumberToObject(root, "networkDifficultySecondary", GLOBAL_STATE->network_nonce_diff_secondary);
+    }
+
     cJSON *hashrate_monitor = cJSON_CreateObject();
     cJSON_AddItemToObject(root, "hashrateMonitor", hashrate_monitor);
     
