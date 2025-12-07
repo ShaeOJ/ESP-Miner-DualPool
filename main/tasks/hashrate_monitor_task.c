@@ -12,8 +12,8 @@
 
 #define HASHRATE_UNIT 0x100000uLL // Hashrate register unit (2^24 hashes)
 
-#define POLL_RATE 5000
-#define HASHRATE_1M_SIZE (60000 / POLL_RATE)  // 12
+#define POLL_RATE 1000
+#define HASHRATE_1M_SIZE (60000 / POLL_RATE)  // 60
 #define HASHRATE_10M_SIZE 10
 #define HASHRATE_1H_SIZE 6
 #define DIV_10M (HASHRATE_1M_SIZE)

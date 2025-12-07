@@ -14,7 +14,7 @@
 
 #define ECHO_TEST_TXD (17)
 #define ECHO_TEST_RXD (18)
-#define BUF_SIZE (1024)
+#define BUF_SIZE (4096)
 
 static const char *TAG = "serial";
 
