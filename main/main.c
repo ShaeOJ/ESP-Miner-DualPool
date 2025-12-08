@@ -107,13 +107,13 @@ void app_main(void)
     if (xTaskCreateWithCaps(stratum_secondary_task, "stratum secondary", 8192, (void *) &GLOBAL_STATE, 5, NULL, MALLOC_CAP_SPIRAM) != pdPASS) {
         ESP_LOGE(TAG, "Error creating stratum secondary task");
     }
-    if (xTaskCreate(create_jobs_task, "stratum miner", 8192, (void *) &GLOBAL_STATE, 10, NULL) != pdPASS) {
+    if (xTaskCreate(create_jobs_task, "stratum miner", 8192, (void *) &GLOBAL_STATE, 10, &GLOBAL_STATE.create_jobs_task_handle) != pdPASS) {
         ESP_LOGE(TAG, "Error creating stratum miner task");
     }
     if (xTaskCreate(ASIC_task, "asic", 8192, (void *) &GLOBAL_STATE, 10, NULL) != pdPASS) {
         ESP_LOGE(TAG, "Error creating asic task");
     }
-    if (xTaskCreate(ASIC_result_task, "asic result", 8192, (void *) &GLOBAL_STATE, 15, NULL) != pdPASS) {
+    if (xTaskCreate(ASIC_result_task, "asic result", 8192, (void *) &GLOBAL_STATE, 12, NULL) != pdPASS) {
         ESP_LOGE(TAG, "Error creating asic result task");
     }
     if (xTaskCreateWithCaps(hashrate_monitor_task, "hashrate monitor", 8192, (void *) &GLOBAL_STATE, 5, NULL, MALLOC_CAP_SPIRAM) != pdPASS) {

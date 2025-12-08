@@ -562,6 +562,10 @@ void stratum_task(void * pvParameters)
                     STRATUM_V1_free_mining_notify(next_notify_json_str);
                 }
                 queue_enqueue(&GLOBAL_STATE->stratum_queue, stratum_api_v1_message.mining_notification);
+                // Notify create_jobs_task that new work is available
+                if (GLOBAL_STATE->create_jobs_task_handle != NULL) {
+                    xTaskNotifyGive(GLOBAL_STATE->create_jobs_task_handle);
+                }
                 decode_mining_notification(GLOBAL_STATE, stratum_api_v1_message.mining_notification);
             } else if (stratum_api_v1_message.method == MINING_SET_DIFFICULTY) {
                 ESP_LOGI(TAG, "Set pool difficulty: %ld", stratum_api_v1_message.new_difficulty);
@@ -872,6 +876,10 @@ void stratum_secondary_task(void * pvParameters)
                     STRATUM_V1_free_mining_notify(old_notify);
                 }
                 queue_enqueue(&GLOBAL_STATE->stratum_queue_secondary, stratum_api_v1_message_secondary.mining_notification);
+                // Notify create_jobs_task that new work is available
+                if (GLOBAL_STATE->create_jobs_task_handle != NULL) {
+                    xTaskNotifyGive(GLOBAL_STATE->create_jobs_task_handle);
+                }
                 // Extract block header info from secondary pool
                 decode_mining_notification_secondary(GLOBAL_STATE, stratum_api_v1_message_secondary.mining_notification);
             } else if (stratum_api_v1_message_secondary.method == MINING_SET_DIFFICULTY) {

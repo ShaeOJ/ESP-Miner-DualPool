@@ -3,6 +3,8 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 #include "asic_task.h"
 #include "common.h"
 #include "power_management_task.h"
@@ -143,6 +145,9 @@ typedef struct
 
     bool ASIC_initalized;
     bool psram_is_available;
+
+    // Task handle for job creation task (for notifications)
+    TaskHandle_t create_jobs_task_handle;
 
     int block_height;
     char * scriptsig;

@@ -279,9 +279,9 @@ static lv_obj_t * create_scr_bitaxe_logo(const char * name, const char * board_v
 static lv_obj_t * create_scr_fire_pool() {
     lv_obj_t * scr = lv_obj_create(NULL);
 
-    // Fire Pool title
+    // DualPool title
     lv_obj_t *label1 = lv_label_create(scr);
-    lv_label_set_text(label1, "FIRE POOL");
+    lv_label_set_text(label1, "DUALPOOL");
     lv_obj_align(label1, LV_ALIGN_CENTER, 0, -8);
 
     // Vault-TEC subtitle

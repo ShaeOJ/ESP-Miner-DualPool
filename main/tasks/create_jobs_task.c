@@ -1,6 +1,8 @@
 #include <sys/time.h>
 #include <limits.h>
 
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 #include "work_queue.h"
 #include "global_state.h"
 #include "esp_log.h"
@@ -14,6 +16,7 @@
 static const char *TAG = "create_jobs_task";
 
 #define QUEUE_LOW_WATER_MARK 6 // Optimized for faster job dispatch
+#define WORK_WAIT_TIMEOUT_MS 100 // Max time to wait for new work notification
 
 static bool should_generate_more_work(GlobalState *GLOBAL_STATE);
 static void generate_work_for_pool(GlobalState *GLOBAL_STATE, mining_notify *notification, uint64_t extranonce_2, uint32_t difficulty, uint8_t pool_id);
@@ -78,7 +81,8 @@ void create_jobs_task(void *pvParameters)
         // Check if we need more work
         if (!should_generate_more_work(GLOBAL_STATE))
         {
-            vTaskDelay(50 / portTICK_PERIOD_MS);
+            // Wait for notification from stratum task or timeout
+            ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(10));
             continue;
         }
 
@@ -120,8 +124,8 @@ void create_jobs_task(void *pvParameters)
                 generate_work_for_pool(GLOBAL_STATE, current_notification_primary, extranonce_2_primary, difficulty_primary, POOL_PRIMARY);
                 extranonce_2_primary++;
             } else {
-                // No work available, wait
-                vTaskDelay(30 / portTICK_PERIOD_MS);
+                // No work available, wait for notification from stratum task
+                ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(WORK_WAIT_TIMEOUT_MS));
             }
         } else {
             // Single pool mode (or failover) - only use primary
@@ -136,7 +140,8 @@ void create_jobs_task(void *pvParameters)
                     extranonce_2_primary = 0;
                     ESP_LOGI(TAG, "Work dequeued: %s", notification->job_id);
                 } else {
-                    vTaskDelay(30 / portTICK_PERIOD_MS);
+                    // No work available, wait for notification from stratum task
+                    ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(WORK_WAIT_TIMEOUT_MS));
                 }
             }
         }
