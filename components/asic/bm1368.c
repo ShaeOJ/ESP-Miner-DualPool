@@ -188,7 +188,7 @@ uint8_t BM1368_init(float frequency, uint16_t asic_count, uint16_t difficulty)
         for (int j = 0; j < sizeof(chip_init_cmds) / sizeof(chip_init_cmds[0]); j++) {
             _send_BM1368(TYPE_CMD | GROUP_SINGLE | CMD_WRITE, chip_init_cmds[j], 6, false);
         }
-        vTaskDelay(pdMS_TO_TICKS(500));
+        vTaskDelay(pdMS_TO_TICKS(100));  // Reduced from 500ms for faster init
     }
 
     uint8_t difficulty_mask[6];

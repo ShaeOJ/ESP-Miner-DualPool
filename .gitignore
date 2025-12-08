@@ -37,3 +37,7 @@ debug.log
 .vscode
 .cache
 nul
+
+# Eclipse project files
+.cproject
+.project

@@ -461,7 +461,6 @@ void stratum_task(void * pvParameters)
         ESP_LOGI(TAG, "Connecting to: stratum+tcp://%s:%d (%s)", stratum_url, port, conn_info.host_ip);
 
         GLOBAL_STATE->sock = socket(conn_info.addr_family, SOCK_STREAM, conn_info.ip_protocol);
-        vTaskDelay(300 / portTICK_PERIOD_MS);
         if (GLOBAL_STATE->sock < 0) {
             ESP_LOGE(TAG, "Unable to create socket: errno %d", errno);
             if (++retry_critical_attempts > MAX_CRITICAL_RETRY_ATTEMPTS) {
@@ -790,7 +789,6 @@ void stratum_secondary_task(void * pvParameters)
         ESP_LOGI(TAG_SECONDARY, "Connecting to secondary: stratum+tcp://%s:%d (%s)", stratum_url, port, conn_info.host_ip);
 
         GLOBAL_STATE->sock_secondary = socket(conn_info.addr_family, SOCK_STREAM, conn_info.ip_protocol);
-        vTaskDelay(300 / portTICK_PERIOD_MS);
         if (GLOBAL_STATE->sock_secondary < 0) {
             ESP_LOGE(TAG_SECONDARY, "Unable to create socket: errno %d", errno);
             retry_attempts++;
