@@ -12,13 +12,6 @@
 #include "hashrate_monitor_task.h"
 #include "asic.h"
 
-// Clusteraxe integration
-#include "cluster_config.h"
-#if CLUSTER_ENABLED && CLUSTER_IS_SLAVE
-#include "cluster_integration.h"
-#include "cluster.h"
-#endif
-
 static const char *TAG = "asic_result";
 
 void ASIC_result_task(void *pvParameters)
@@ -63,22 +56,7 @@ void ASIC_result_task(void *pvParameters)
 
         if (nonce_diff >= active_job->pool_diff)
         {
-#if CLUSTER_ENABLED && CLUSTER_IS_SLAVE
-            // In slave mode, route shares to cluster master instead of pool
-            if (cluster_slave_should_skip_stratum()) {
-                // Intercept and send to master via cluster protocol
-                cluster_slave_intercept_share(GLOBAL_STATE,
-                                               job_id,
-                                               asic_result->nonce,
-                                               active_job->ntime,
-                                               asic_result->rolled_version ^ active_job->version,
-                                               active_job->extranonce2);
-                ESP_LOGI(TAG, "Share routed to cluster master: job=%s, nonce=0x%08lX",
-                         active_job->jobid, (unsigned long)asic_result->nonce);
-            } else
-#endif
-            {
-                // Use the job's pool_id to determine which pool to submit to
+            // Use the job's pool_id to determine which pool to submit to
                 // This ensures we submit to the pool that issued this job
                 uint8_t target_pool = active_job->pool_id;
 
@@ -126,7 +104,6 @@ void ASIC_result_task(void *pvParameters)
                         stratum_close_connection(GLOBAL_STATE);
                     }
                 }
-            }
         }
 
         SYSTEM_notify_found_nonce(GLOBAL_STATE, nonce_diff, job_id);

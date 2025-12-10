@@ -18,8 +18,6 @@
 #include "bap_subscription.h"
 #include "bap.h"
 #include "asic.h"
-#include "cluster.h"
-#include "cluster_config.h"
 
 static const char *TAG = "BAP_HANDLERS";
 
@@ -62,14 +60,6 @@ void BAP_parse_message(const char *message) {
         ESP_LOGE(TAG, "Parse message: Doesn't start with $");
         return;
     }
-
-    // Check for cluster messages ($CL...) and route to cluster handler
-#if CLUSTER_ENABLED
-    if (cluster_is_cluster_message(message)) {
-        cluster_on_bap_message_received(message);
-        return;
-    }
-#endif
 
     const char *asterisk = strchr(message, '*');
     char sentence_body[BAP_MAX_MESSAGE_LEN];

@@ -13,13 +13,6 @@
 
 #include "asic.h"
 
-// Clusteraxe integration
-#include "cluster_config.h"
-#if CLUSTER_ENABLED
-#include "cluster_integration.h"
-#include "cluster.h"
-#endif
-
 static const char *TAG = "create_jobs_task";
 
 #define QUEUE_LOW_WATER_MARK 6 // Optimized for faster job dispatch
@@ -43,17 +36,6 @@ void create_jobs_task(void *pvParameters)
 
     while (1)
     {
-#if CLUSTER_ENABLED && CLUSTER_IS_SLAVE
-        // In slave mode, work comes from cluster master, not stratum
-        // The cluster_slave module handles work reception and ASIC job creation
-        if (cluster_slave_should_skip_stratum()) {
-            // Wait for cluster work - the cluster_submit_work_to_asic() function
-            // directly enqueues jobs to ASIC_jobs_queue when work arrives from master
-            ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(WORK_WAIT_TIMEOUT_MS));
-            continue;
-        }
-#endif
-
         // Check for new difficulty messages
         if (GLOBAL_STATE->new_set_mining_difficulty_msg)
         {
@@ -235,18 +217,6 @@ static void generate_work_for_pool(GlobalState *GLOBAL_STATE, mining_notify *not
 
     queued_next_job->version_mask = version_mask;
     queued_next_job->pool_id = pool_id;  // Tag with pool ID
-
-#if CLUSTER_ENABLED && CLUSTER_IS_MASTER
-    // In cluster master mode, limit nonce range to master's assigned slot
-    // This prevents duplicate work with slaves who have their own ranges
-    if (cluster_is_active()) {
-        uint32_t nonce_start, nonce_end;
-        cluster_master_get_local_nonce_range(&nonce_start, &nonce_end);
-        queued_next_job->starting_nonce = nonce_start;
-        // Note: The ASIC will naturally roll through nonces from starting_nonce
-        // The range limitation is implicit - when slaves are added, ranges shrink
-    }
-#endif
 
     queue_enqueue(&GLOBAL_STATE->ASIC_jobs_queue, queued_next_job);
 }
