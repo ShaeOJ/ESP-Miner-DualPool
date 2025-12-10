@@ -60,6 +60,7 @@ INCLUDE_DIRS
 PRIV_REQUIRES
     "app_update"
     "driver"
+    "efuse"
     "esp_adc"
     "esp_app_format"
     "esp_event"

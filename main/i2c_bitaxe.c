@@ -27,7 +27,19 @@ typedef struct {
     char device_tag[32];
 } i2c_dev_map_entry_t;
 
-#define MAX_DEVICES 10 // Adjust as needed
+/**
+ * Maximum number of I2C devices that can be registered in the device map.
+ *
+ * Typical devices include:
+ * - ASIC chips (BM1370/BM1397/BM1366)
+ * - Temperature sensors (EMC2101, EMC2103, EMC2302, TMP1075)
+ * - Power management ICs (TPS546, DS4432U)
+ * - Current/voltage sensors (INA260)
+ * - Fan controllers (integrated with thermal sensors)
+ *
+ * Adjust this value if adding more I2C devices to the system.
+ */
+#define MAX_DEVICES 10
 static i2c_dev_map_entry_t i2c_device_map[MAX_DEVICES];
 static int i2c_device_count = 0;
 

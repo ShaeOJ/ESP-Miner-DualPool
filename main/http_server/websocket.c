@@ -189,7 +189,34 @@ esp_err_t websocket_handler(httpd_req_t *req)
         return ESP_OK;
     }
 
-    // TODO: Handle incoming packets here
+    // Handle incoming WebSocket packets
+    if (ws_pkt.type == HTTPD_WS_TYPE_PING) {
+        ESP_LOGD(TAG, "Received PING, sending PONG");
+        ws_pkt.type = HTTPD_WS_TYPE_PONG;
+        ret = httpd_ws_send_frame(req, &ws_pkt);
+        if (ret != ESP_OK) {
+            ESP_LOGE(TAG, "Failed to send PONG frame: %s", esp_err_to_name(ret));
+        }
+    } else if (ws_pkt.type == HTTPD_WS_TYPE_PONG) {
+        ESP_LOGD(TAG, "Received PONG");
+    } else if (ws_pkt.type == HTTPD_WS_TYPE_TEXT) {
+        // Handle text messages - currently just echo for debugging
+        // Add null terminator for safe string operations
+        if (ws_pkt.len < ws_pkt.len + 1) {
+            buf[ws_pkt.len] = '\0';
+            ESP_LOGI(TAG, "Received text message (%d bytes): %s", ws_pkt.len, buf);
+
+            // Echo the message back (for debugging/testing)
+            // In production, you might want to parse JSON commands here
+            // Example: {"cmd": "restart"}, {"cmd": "get_status"}, etc.
+            ret = httpd_ws_send_frame(req, &ws_pkt);
+            if (ret != ESP_OK) {
+                ESP_LOGE(TAG, "Failed to echo message: %s", esp_err_to_name(ret));
+            }
+        }
+    } else if (ws_pkt.type == HTTPD_WS_TYPE_BINARY) {
+        ESP_LOGW(TAG, "Received binary message (%d bytes) - not supported", ws_pkt.len);
+    }
 
     free(buf);
     return ESP_OK;

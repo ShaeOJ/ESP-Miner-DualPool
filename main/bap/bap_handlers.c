@@ -18,6 +18,8 @@
 #include "bap_subscription.h"
 #include "bap.h"
 #include "asic.h"
+#include "cluster.h"
+#include "cluster_config.h"
 
 static const char *TAG = "BAP_HANDLERS";
 
@@ -49,7 +51,7 @@ void BAP_parse_message(const char *message) {
     last_message_time = current_time;
 
     //ESP_LOGI(TAG, "Parsing message: %s", message);
-    
+
     size_t len = strlen(message);
     if (len < 5) {
         ESP_LOGE(TAG, "Parse message: Too short (%d chars)", len);
@@ -60,6 +62,14 @@ void BAP_parse_message(const char *message) {
         ESP_LOGE(TAG, "Parse message: Doesn't start with $");
         return;
     }
+
+    // Check for cluster messages ($CL...) and route to cluster handler
+#if CLUSTER_ENABLED
+    if (cluster_is_cluster_message(message)) {
+        cluster_on_bap_message_received(message);
+        return;
+    }
+#endif
 
     const char *asterisk = strchr(message, '*');
     char sentence_body[BAP_MAX_MESSAGE_LEN];
@@ -123,7 +133,8 @@ void BAP_parse_message(const char *message) {
     }
 
     char tokenize_body[BAP_MAX_MESSAGE_LEN];
-    strcpy(tokenize_body, sentence_body);
+    strncpy(tokenize_body, sentence_body, sizeof(tokenize_body) - 1);
+    tokenize_body[sizeof(tokenize_body) - 1] = '\0';
     
     char *saveptr;
     char *talker = strtok_r(tokenize_body, ",", &saveptr);
@@ -170,7 +181,16 @@ void BAP_handle_subscription(const char *parameter, const char *value) {
     }
 
     // Check if we're in AP mode - subscriptions not allowed
-    if (!bap_global_state || !bap_global_state->SYSTEM_MODULE.is_connected) {
+    if (xSemaphoreTake(bap_state_mutex, pdMS_TO_TICKS(100)) != pdTRUE) {
+        ESP_LOGE(TAG, "Failed to acquire state mutex for subscription check");
+        BAP_send_message(BAP_CMD_ERR, parameter, "mutex_timeout");
+        return;
+    }
+
+    bool is_connected = bap_global_state && bap_global_state->SYSTEM_MODULE.is_connected;
+    xSemaphoreGive(bap_state_mutex);
+
+    if (!is_connected) {
         ESP_LOGW(TAG, "Subscription not allowed in AP mode");
         BAP_send_message(BAP_CMD_ERR, parameter, "ap_mode_no_subscriptions");
         return;
@@ -199,7 +219,16 @@ void BAP_handle_request(const char *parameter, const char *value) {
     }
 
     // Check if we're in AP mode - most requests not allowed
-    if (!bap_global_state || !bap_global_state->SYSTEM_MODULE.is_connected) {
+    if (xSemaphoreTake(bap_state_mutex, pdMS_TO_TICKS(100)) != pdTRUE) {
+        ESP_LOGE(TAG, "Failed to acquire state mutex for request check");
+        BAP_send_message(BAP_CMD_ERR, parameter, "mutex_timeout");
+        return;
+    }
+
+    bool is_valid = bap_global_state && bap_global_state->SYSTEM_MODULE.is_connected;
+    xSemaphoreGive(bap_state_mutex);
+
+    if (!is_valid) {
         ESP_LOGW(TAG, "Request not allowed in AP mode");
         BAP_send_message(BAP_CMD_ERR, parameter, "ap_mode_no_requests");
         return;
@@ -211,12 +240,14 @@ void BAP_handle_request(const char *parameter, const char *value) {
         return;
     }
 
-    if (!bap_global_state) {
-        ESP_LOGE(TAG, "Global state not available for request");
+    if (xSemaphoreTake(bap_state_mutex, pdMS_TO_TICKS(100)) != pdTRUE) {
+        ESP_LOGE(TAG, "Failed to acquire state mutex for send request");
+        BAP_send_message(BAP_CMD_ERR, parameter, "mutex_timeout");
         return;
     }
 
     BAP_send_request(param, bap_global_state);
+    xSemaphoreGive(bap_state_mutex);
 }
 
 void BAP_send_request(bap_parameter_t param, GlobalState *state) {
@@ -254,16 +285,26 @@ void BAP_handle_settings(const char *parameter, const char *value) {
         return;
     }
 
+    if (xSemaphoreTake(bap_state_mutex, pdMS_TO_TICKS(100)) != pdTRUE) {
+        ESP_LOGE(TAG, "Failed to acquire state mutex for settings");
+        BAP_send_message(BAP_CMD_ERR, parameter, "mutex_timeout");
+        return;
+    }
+
     if (!bap_global_state) {
+        xSemaphoreGive(bap_state_mutex);
         ESP_LOGE(TAG, "Global state not available for settings");
         BAP_send_message(BAP_CMD_ERR, parameter, "system_not_ready");
         return;
     }
 
+    bool is_connected = bap_global_state->SYSTEM_MODULE.is_connected;
+    xSemaphoreGive(bap_state_mutex);
+
     bap_parameter_t param = BAP_parameter_from_string(parameter);
-    
+
     // In AP mode, only allow SSID and password settings
-    if (!bap_global_state->SYSTEM_MODULE.is_connected) {
+    if (!is_connected) {
         if (param != BAP_PARAM_SSID && param != BAP_PARAM_PASSWORD) {
             ESP_LOGW(TAG, "Setting '%s' not allowed in AP mode", parameter);
             BAP_send_message(BAP_CMD_ERR, parameter, "ap_mode_limited_settings");
@@ -284,19 +325,31 @@ void BAP_handle_settings(const char *parameter, const char *value) {
                 }
                 
                 //ESP_LOGI(TAG, "Setting ASIC frequency to %.2f MHz", target_frequency);
-                
+
+                // Protect global state access with mutex
+                if (xSemaphoreTake(bap_state_mutex, pdMS_TO_TICKS(100)) != pdTRUE) {
+                    ESP_LOGE(TAG, "Failed to acquire state mutex for frequency change");
+                    BAP_send_message(BAP_CMD_ERR, parameter, "mutex_timeout");
+                    return;
+                }
+
                 bool success = ASIC_set_frequency(bap_global_state, target_frequency);
-                
+
                 if (success) {
                     //ESP_LOGI(TAG, "Frequency successfully set to %.2f MHz", target_frequency);
-                    
+
                     bap_global_state->POWER_MANAGEMENT_MODULE.frequency_value = target_frequency;
                     nvs_config_set_float(NVS_CONFIG_ASIC_FREQUENCY, target_frequency);
-                    
+
                     char freq_str[32];
                     snprintf(freq_str, sizeof(freq_str), "%.2f", target_frequency);
+
+                    xSemaphoreGive(bap_state_mutex);
+
                     BAP_send_message(BAP_CMD_ACK, parameter, freq_str);
                 } else {
+                    xSemaphoreGive(bap_state_mutex);
+
                     ESP_LOGE(TAG, "Failed to set frequency to %.2f MHz", target_frequency);
                     BAP_send_message(BAP_CMD_ERR, parameter, "set_failed");
                 }

@@ -408,27 +408,156 @@ void STRATUM_V1_parse(StratumApiV1Message * message, const char * stratum_json)
     if (message->method == MINING_NOTIFY) {
 
         mining_notify * new_work = malloc(sizeof(mining_notify));
-        // new_work->difficulty = difficulty;
+        if (!new_work) {
+            ESP_LOGE(TAG, "Failed to allocate memory for mining_notify");
+            return;
+        }
+
+        // Initialize all pointers to NULL for safe cleanup
+        new_work->job_id = NULL;
+        new_work->prev_block_hash = NULL;
+        new_work->coinbase_1 = NULL;
+        new_work->coinbase_2 = NULL;
+        new_work->merkle_branches = NULL;
+
         cJSON * params = cJSON_GetObjectItem(json, "params");
-        new_work->job_id = strdup(cJSON_GetArrayItem(params, 0)->valuestring);
-        new_work->prev_block_hash = strdup(cJSON_GetArrayItem(params, 1)->valuestring);
-        new_work->coinbase_1 = strdup(cJSON_GetArrayItem(params, 2)->valuestring);
-        new_work->coinbase_2 = strdup(cJSON_GetArrayItem(params, 3)->valuestring);
+        if (!params || !cJSON_IsArray(params) || cJSON_GetArraySize(params) < 8) {
+            ESP_LOGE(TAG, "Invalid mining.notify params - missing or too few elements");
+            free(new_work);
+            return;
+        }
+
+        // Validate and copy job_id
+        cJSON* item = cJSON_GetArrayItem(params, 0);
+        if (!item || !item->valuestring) {
+            ESP_LOGE(TAG, "Missing job_id in mining.notify");
+            free(new_work);
+            return;
+        }
+        new_work->job_id = strdup(item->valuestring);
+
+        // Validate and copy prev_block_hash
+        item = cJSON_GetArrayItem(params, 1);
+        if (!item || !item->valuestring) {
+            ESP_LOGE(TAG, "Missing prev_block_hash in mining.notify");
+            free(new_work->job_id);
+            free(new_work);
+            return;
+        }
+        new_work->prev_block_hash = strdup(item->valuestring);
+
+        // Validate and copy coinbase_1
+        item = cJSON_GetArrayItem(params, 2);
+        if (!item || !item->valuestring) {
+            ESP_LOGE(TAG, "Missing coinbase_1 in mining.notify");
+            free(new_work->prev_block_hash);
+            free(new_work->job_id);
+            free(new_work);
+            return;
+        }
+        new_work->coinbase_1 = strdup(item->valuestring);
+
+        // Validate and copy coinbase_2
+        item = cJSON_GetArrayItem(params, 3);
+        if (!item || !item->valuestring) {
+            ESP_LOGE(TAG, "Missing coinbase_2 in mining.notify");
+            free(new_work->coinbase_1);
+            free(new_work->prev_block_hash);
+            free(new_work->job_id);
+            free(new_work);
+            return;
+        }
+        new_work->coinbase_2 = strdup(item->valuestring);
 
         cJSON * merkle_branch = cJSON_GetArrayItem(params, 4);
-        new_work->n_merkle_branches = cJSON_GetArraySize(merkle_branch);
-        if (new_work->n_merkle_branches > MAX_MERKLE_BRANCHES) {
-            printf("Too many Merkle branches.\n");
-            abort();
-        }
-        new_work->merkle_branches = malloc(HASH_SIZE * new_work->n_merkle_branches);
-        for (size_t i = 0; i < new_work->n_merkle_branches; i++) {
-            hex2bin(cJSON_GetArrayItem(merkle_branch, i)->valuestring, new_work->merkle_branches + HASH_SIZE * i, HASH_SIZE);
+        if (!merkle_branch || !cJSON_IsArray(merkle_branch)) {
+            ESP_LOGE(TAG, "Missing or invalid merkle_branch in mining.notify");
+            free(new_work->coinbase_2);
+            free(new_work->coinbase_1);
+            free(new_work->prev_block_hash);
+            free(new_work->job_id);
+            free(new_work);
+            return;
         }
 
-        new_work->version = strtoul(cJSON_GetArrayItem(params, 5)->valuestring, NULL, 16);
-        new_work->target = strtoul(cJSON_GetArrayItem(params, 6)->valuestring, NULL, 16);
-        new_work->ntime = strtoul(cJSON_GetArrayItem(params, 7)->valuestring, NULL, 16);
+        new_work->n_merkle_branches = cJSON_GetArraySize(merkle_branch);
+        if (new_work->n_merkle_branches > MAX_MERKLE_BRANCHES) {
+            ESP_LOGE(TAG, "Too many Merkle branches: %zu (max: %d)", new_work->n_merkle_branches, MAX_MERKLE_BRANCHES);
+            free(new_work->coinbase_2);
+            free(new_work->coinbase_1);
+            free(new_work->prev_block_hash);
+            free(new_work->job_id);
+            free(new_work);
+            return;
+        }
+
+        new_work->merkle_branches = malloc(HASH_SIZE * new_work->n_merkle_branches);
+        if (!new_work->merkle_branches && new_work->n_merkle_branches > 0) {
+            ESP_LOGE(TAG, "Failed to allocate memory for merkle_branches");
+            free(new_work->coinbase_2);
+            free(new_work->coinbase_1);
+            free(new_work->prev_block_hash);
+            free(new_work->job_id);
+            free(new_work);
+            return;
+        }
+
+        for (size_t i = 0; i < new_work->n_merkle_branches; i++) {
+            item = cJSON_GetArrayItem(merkle_branch, i);
+            if (!item || !item->valuestring) {
+                ESP_LOGE(TAG, "Missing merkle branch item %zu", i);
+                free(new_work->merkle_branches);
+                free(new_work->coinbase_2);
+                free(new_work->coinbase_1);
+                free(new_work->prev_block_hash);
+                free(new_work->job_id);
+                free(new_work);
+                return;
+            }
+            hex2bin(item->valuestring, new_work->merkle_branches + HASH_SIZE * i, HASH_SIZE);
+        }
+
+        // Validate version field
+        item = cJSON_GetArrayItem(params, 5);
+        if (!item || !item->valuestring) {
+            ESP_LOGE(TAG, "Missing version in mining.notify");
+            free(new_work->merkle_branches);
+            free(new_work->coinbase_2);
+            free(new_work->coinbase_1);
+            free(new_work->prev_block_hash);
+            free(new_work->job_id);
+            free(new_work);
+            return;
+        }
+        new_work->version = strtoul(item->valuestring, NULL, 16);
+
+        // Validate target field
+        item = cJSON_GetArrayItem(params, 6);
+        if (!item || !item->valuestring) {
+            ESP_LOGE(TAG, "Missing target in mining.notify");
+            free(new_work->merkle_branches);
+            free(new_work->coinbase_2);
+            free(new_work->coinbase_1);
+            free(new_work->prev_block_hash);
+            free(new_work->job_id);
+            free(new_work);
+            return;
+        }
+        new_work->target = strtoul(item->valuestring, NULL, 16);
+
+        // Validate ntime field
+        item = cJSON_GetArrayItem(params, 7);
+        if (!item || !item->valuestring) {
+            ESP_LOGE(TAG, "Missing ntime in mining.notify");
+            free(new_work->merkle_branches);
+            free(new_work->coinbase_2);
+            free(new_work->coinbase_1);
+            free(new_work->prev_block_hash);
+            free(new_work->job_id);
+            free(new_work);
+            return;
+        }
+        new_work->ntime = strtoul(item->valuestring, NULL, 16);
 
         message->mining_notification = new_work;
 

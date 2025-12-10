@@ -22,6 +22,12 @@
 #include "asic_reset.h"
 #include "asic_init.h"
 
+// Clusteraxe integration
+#include "cluster_config.h"
+#if CLUSTER_ENABLED
+#include "cluster_integration.h"
+#endif
+
 static GlobalState GLOBAL_STATE;
 
 static const char * TAG = "bitaxe";
@@ -87,6 +93,17 @@ void app_main(void)
         ESP_LOGE(TAG, "Failed to initialize BAP interface: %d", bap_ret);
         // Continue anyway, as BAP is not critical for core functionality
     }
+
+    // Initialize Clusteraxe module (requires BAP to be initialized first)
+#if CLUSTER_ENABLED
+    esp_err_t cluster_ret = cluster_integration_init(&GLOBAL_STATE);
+    if (cluster_ret != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to initialize cluster module: %d", cluster_ret);
+        // Continue anyway, cluster is optional
+    } else {
+        ESP_LOGI(TAG, "Clusteraxe module initialized");
+    }
+#endif
 
     while (!GLOBAL_STATE.SYSTEM_MODULE.is_connected) {
         vTaskDelay(100 / portTICK_PERIOD_MS);

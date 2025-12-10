@@ -134,13 +134,41 @@ esp_err_t HTTP_send_json(httpd_req_t * req, const cJSON * item, int * prebuffer_
     return res;
 }
 
+/**
+ * Precision factor for float to JSON conversion
+ *
+ * Rounds float values to 7 decimal places (1e-7 precision) when converting to JSON.
+ * This prevents floating point representation artifacts in JSON output.
+ *
+ * Suitable for typical mining metrics:
+ * - Hashrate: 0.001 to 10000.0 GH/s (3-4 significant digits needed)
+ * - Power: 1.0 to 200.0 W (2-3 significant digits needed)
+ * - Voltage: 0.7 to 14.0 V (2-3 significant digits needed)
+ * - Temperature: -40.0 to 125.0 °C (2-3 significant digits needed)
+ * - Fan RPM: 0 to 10000 RPM (integer values)
+ *
+ * Note: This approach may lose precision for:
+ * - Very large values (> 1e7): Risk of overflow during multiplication
+ * - Very small values (< 1e-7): May round to zero
+ * - High-precision scientific data: Consider alternative JSON encoding
+ */
 static const double FACTOR = 10000000.0;
 
+/**
+ * @brief Add float value to JSON object with controlled precision
+ *
+ * Rounds to 7 decimal places to avoid floating point artifacts.
+ */
 cJSON* cJSON_AddFloatToObject(cJSON * const object, const char * const name, const float number) {
     double d_value = round((double)number * FACTOR) / FACTOR;
     return cJSON_AddNumberToObject(object, name, d_value);
 }
 
+/**
+ * @brief Create JSON number from float with controlled precision
+ *
+ * Rounds to 7 decimal places to avoid floating point artifacts.
+ */
 cJSON* cJSON_CreateFloat(float number) {
     double d_value = round((double)number * FACTOR) / FACTOR;
     return cJSON_CreateNumber(d_value);
@@ -202,7 +230,9 @@ typedef struct rest_server_context
     char scratch[SCRATCH_BUFSIZE];
 } rest_server_context_t;
 
-#define CHECK_FILE_EXTENSION(filename, ext) (strcasecmp(&filename[strlen(filename) - strlen(ext)], ext) == 0)
+#define CHECK_FILE_EXTENSION(filename, ext) \
+    (strlen(filename) >= strlen(ext) && \
+     strcasecmp(&filename[strlen(filename) - strlen(ext)], ext) == 0)
 
 static esp_err_t ip_in_private_range(uint32_t address) {
     uint32_t ip_address = ntohl(address);
@@ -315,7 +345,7 @@ static void readAxeOSVersion(void) {
             ESP_LOGE(TAG, "Firmware (%s) and AxeOS (%s) versions do not match. Please make sure to update both www.bin and esp-miner.bin.", esp_app_get_description()->version, axeOSVersion);
         }
     } else {
-        strcpy(axeOSVersion, "unknown");
+        snprintf(axeOSVersion, sizeof(axeOSVersion), "%s", "unknown");
         ESP_LOGE(TAG, "Failed to open AxeOS version.txt");
     }
 }
@@ -1378,9 +1408,9 @@ esp_err_t start_rest_server(void * pvParameters)
     httpd_register_uri_handler(server, &update_post_ota_firmware);
 
     httpd_uri_t update_post_ota_www = {
-        .uri = "/api/system/OTAWWW", 
-        .method = HTTP_POST, 
-        .handler = POST_WWW_update, 
+        .uri = "/api/system/OTAWWW",
+        .method = HTTP_POST,
+        .handler = POST_WWW_update,
         .user_ctx = NULL
     };
     httpd_register_uri_handler(server, &update_post_ota_www);

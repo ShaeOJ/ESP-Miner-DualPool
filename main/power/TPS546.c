@@ -11,9 +11,6 @@
 #include "i2c_bitaxe.h"
 #include "TPS546.h"
 
-//#define DEBUG_TPS546_MEAS 1 //uncomment to debug TPS546 measurements
-//#define DEBUG_TPS546_STATUS 1 //uncomment to debug TPS546 status bits
-
 #define I2C_MASTER_NUM 0 /*!< I2C master i2c port number, the number of i2c peripheral interfaces available will depend on the chip */
 
 #define WRITE_BIT      I2C_MASTER_WRITE
@@ -112,31 +109,6 @@ static esp_err_t smb_read_block(uint8_t command, uint8_t *data, uint8_t len)
 
     return ESP_OK;
 }
-
-// /**
-//  * @brief SMBus write block - don;t forget the length byte first :P
-//  * @param command The command to write
-//  * @param data The data to write
-//  * @param len The number of bytes to write
-//  */
-// static esp_err_t smb_write_block(uint8_t command, uint8_t *data, uint8_t len)
-// {
-//     //malloc a buffer len+2 to store the command byte and then the length byte
-//     uint8_t *buf = (uint8_t *)malloc(len+2);
-//     buf[0] = command;
-//     buf[1] = len;
-//     //copy the data into the buffer
-//     memcpy(buf+2, data, len);
-
-//     //write it all
-//     if (i2c_bitaxe_register_write_bytes(tps546_i2c_handle, buf, len+2) != ESP_OK) {
-//         free(buf);
-//         return ESP_FAIL;
-//     } else {
-//         free(buf);
-//         return ESP_OK;
-//     }
-// }
 
 /**
  * @brief Convert an SLINEAR11 value into an int
@@ -629,13 +601,34 @@ void TPS546_write_entire_config(void)
     ESP_LOGI(TAG, "Setting PIN_DETECT_OVERRIDE");
     smb_write_word(PMBUS_PIN_DETECT_OVERRIDE, INIT_PIN_DETECT_OVERRIDE);
 
-    /* TODO write new MFR_REVISION number to reflect these parameters */
-    // ESP_LOGI(TAG, "Setting MFR ID");
-    // smb_write_block(PMBUS_MFR_ID, MFR_ID, 3);
-    // ESP_LOGI(TAG, "Setting MFR MODEL");
-    // smb_write_block(PMBUS_MFR_ID, MFR_MODEL, 3);
-    // ESP_LOGI(TAG, "Setting MFR REVISION");
-    // smb_write_block(PMBUS_MFR_ID, MFR_REVISION, 3);
+    /*
+     * Configuration identification (runtime only - not written to NVM)
+     *
+     * NOTE: Writing to MFR_ID/MFR_MODEL/MFR_REVISION registers and storing to NVM
+     * can corrupt the TPS546 in an unrecoverable state. These values are read-only
+     * from factory and should never be modified.
+     *
+     * Instead, we log a runtime configuration signature based on applied settings
+     * for diagnostic and version tracking purposes.
+     */
+    uint8_t mfr_id[MAX_BLOCK_LEN] = {0};
+    uint8_t mfr_model[MAX_BLOCK_LEN] = {0};
+    uint8_t mfr_revision[MAX_BLOCK_LEN] = {0};
+
+    if (smb_read_block(PMBUS_MFR_ID, mfr_id, MAX_BLOCK_LEN) == ESP_OK) {
+        ESP_LOGI(TAG, "Factory MFR ID: %.*s", (int)mfr_id[0], &mfr_id[1]);
+    }
+    if (smb_read_block(PMBUS_MFR_MODEL, mfr_model, MAX_BLOCK_LEN) == ESP_OK) {
+        ESP_LOGI(TAG, "Factory MFR MODEL: %.*s", (int)mfr_model[0], &mfr_model[1]);
+    }
+    if (smb_read_block(PMBUS_MFR_REVISION, mfr_revision, MAX_BLOCK_LEN) == ESP_OK) {
+        ESP_LOGI(TAG, "Factory MFR REVISION: %.*s", (int)mfr_revision[0], &mfr_revision[1]);
+    }
+
+    // Log applied configuration for diagnostics (bitaxe-specific settings)
+    // Note: Configuration is now logged via factory MFR fields read above
+    // Actual runtime values can be queried using TPS546_get_vout(), TPS546_get_iout(), etc.
+    ESP_LOGI(TAG, "TPS546 configuration applied successfully");
 
     /*
     !!!!!!!!!!!!!!!!!!!!!!!!!!!

@@ -14,11 +14,22 @@ esp_err_t Thermal_init(DeviceConfig * DEVICE_CONFIG)
 {
     if (DEVICE_CONFIG->EMC2101) {
         ESP_RETURN_ON_ERROR(EMC2101_init(DEVICE_CONFIG->temp_offset), TAG, "Failed to initialise EMC2101");
-        // TODO: Improve this check.
-        if (DEVICE_CONFIG->emc_ideality_factor != 0x00) {
-            ESP_LOGI(TAG, "EMC2101 configuration: Ideality Factor: %02x, Beta Compensation: %02x", DEVICE_CONFIG->emc_ideality_factor, DEVICE_CONFIG->emc_beta_compensation);
+
+        // Validate and apply EMC2101 configuration if set
+        // Valid ideality factor range: 0x08 to 0x37 (as per emc2101_ideality_t enum)
+        // Valid beta compensation range: 0x00 to 0x08 (as per emc2101_beta_t enum)
+        bool ideality_valid = (DEVICE_CONFIG->emc_ideality_factor >= 0x08 &&
+                               DEVICE_CONFIG->emc_ideality_factor <= 0x37);
+        bool beta_valid = (DEVICE_CONFIG->emc_beta_compensation <= 0x08);
+
+        if (DEVICE_CONFIG->emc_ideality_factor != 0x00 && ideality_valid && beta_valid) {
+            ESP_LOGI(TAG, "EMC2101 configuration: Ideality Factor: 0x%02x, Beta Compensation: 0x%02x",
+                     DEVICE_CONFIG->emc_ideality_factor, DEVICE_CONFIG->emc_beta_compensation);
             EMC2101_set_ideality_factor(DEVICE_CONFIG->emc_ideality_factor);
             EMC2101_set_beta_compensation(DEVICE_CONFIG->emc_beta_compensation);
+        } else if (DEVICE_CONFIG->emc_ideality_factor != 0x00) {
+            ESP_LOGW(TAG, "EMC2101 configuration out of range - Ideality: 0x%02x (valid: 0x08-0x37), Beta: 0x%02x (valid: 0x00-0x08). Using defaults.",
+                     DEVICE_CONFIG->emc_ideality_factor, DEVICE_CONFIG->emc_beta_compensation);
         }
     }
     if (DEVICE_CONFIG->EMC2103) {

@@ -249,7 +249,11 @@ void POWER_MANAGEMENT_task(void * pvParameters)
 
                 power_management->fan_perc = pid_output;
                 if (Thermal_set_fan_percent(&GLOBAL_STATE->DEVICE_CONFIG, pid_output / 100.0) != ESP_OK) {
-                    exit(EXIT_FAILURE);
+                    ESP_LOGE(TAG, "Failed to set PID-controlled fan speed - attempting recovery");
+                    // Attempt to set fan to 100% as a safety measure
+                    Thermal_set_fan_percent(&GLOBAL_STATE->DEVICE_CONFIG, 1.0);
+                    vTaskDelay(pdMS_TO_TICKS(5000));  // Wait before retrying
+                    continue;
                 }
                 ESP_LOGI(TAG, "Temp: %.1f °C, SetPoint: %.1f °C, Output: %.1f%% (P:%.1f I:%.1f D_val:%.1f D_start_val:%.1f)",
                          pid_input, pid_setPoint, pid_output, pid.dispKp, pid.dispKi, pid.dispKd, pid_d_startup); // Log current effective Kp, Ki, Kd
@@ -258,15 +262,23 @@ void POWER_MANAGEMENT_task(void * pvParameters)
                     ESP_LOGW(TAG, "AP mode with invalid temperature reading: %.1f °C - Setting fan to 70%%", power_management->chip_temp_avg);
                     power_management->fan_perc = 70;
                     if (Thermal_set_fan_percent(&GLOBAL_STATE->DEVICE_CONFIG, 0.7) != ESP_OK) {
-                        exit(EXIT_FAILURE);
+                        ESP_LOGE(TAG, "Failed to set AP mode fan speed - attempting 100%% safety override");
+                        Thermal_set_fan_percent(&GLOBAL_STATE->DEVICE_CONFIG, 1.0);
+                        vTaskDelay(pdMS_TO_TICKS(5000));
+                        continue;
                     }
                 } else {
                     ESP_LOGW(TAG, "Ignoring invalid temperature reading: %.1f °C", power_management->chip_temp_avg);
                     if (power_management->fan_perc < 100) {
                         ESP_LOGW(TAG, "Setting fan speed to 100%%");
                         power_management->fan_perc = 100;
-                        if (Thermal_set_fan_percent(&GLOBAL_STATE->DEVICE_CONFIG, 1)) {
-                            exit(EXIT_FAILURE);
+                        if (Thermal_set_fan_percent(&GLOBAL_STATE->DEVICE_CONFIG, 1) != ESP_OK) {
+                            ESP_LOGE(TAG, "CRITICAL: Failed to set safety fan speed during invalid temp - retrying");
+                            vTaskDelay(pdMS_TO_TICKS(1000));
+                            // Retry once more
+                            Thermal_set_fan_percent(&GLOBAL_STATE->DEVICE_CONFIG, 1.0);
+                            vTaskDelay(pdMS_TO_TICKS(5000));
+                            continue;
                         }
                     }
                 }
@@ -277,7 +289,10 @@ void POWER_MANAGEMENT_task(void * pvParameters)
                 ESP_LOGI(TAG, "Setting manual fan speed to %d%%", fan_perc);
                 power_management->fan_perc = fan_perc;
                 if (Thermal_set_fan_percent(&GLOBAL_STATE->DEVICE_CONFIG, fan_perc / 100.0f) != ESP_OK) {
-                    exit(EXIT_FAILURE);
+                    ESP_LOGE(TAG, "Failed to set manual fan speed - attempting 100%% safety override");
+                    Thermal_set_fan_percent(&GLOBAL_STATE->DEVICE_CONFIG, 1.0);
+                    vTaskDelay(pdMS_TO_TICKS(5000));
+                    continue;
                 }
             }
         }

@@ -16,6 +16,12 @@
 #include <stdbool.h>
 #include "utils.h"
 
+// Clusteraxe integration
+#include "cluster_config.h"
+#if CLUSTER_ENABLED && CLUSTER_IS_MASTER
+#include "cluster_integration.h"
+#endif
+
 #define MAX_RETRY_ATTEMPTS 3
 #define MAX_CRITICAL_RETRY_ATTEMPTS 5
 #define MAX_EXTRANONCE_2_LEN 32
@@ -129,9 +135,10 @@ static esp_err_t resolve_stratum_address(const char *hostname, uint16_t port, st
 
         // Append zone identifier for link-local addresses
         if (IN6_IS_ADDR_LINKLOCAL(&addr6->sin6_addr) && addr6->sin6_scope_id != 0) {
-            char zone_buf[16];
-            snprintf(zone_buf, sizeof(zone_buf), "%%%lu", addr6->sin6_scope_id);
-            strncat(conn_info->host_ip, zone_buf, sizeof(conn_info->host_ip) - strlen(conn_info->host_ip) - 1);
+            size_t current_len = strlen(conn_info->host_ip);
+            snprintf(conn_info->host_ip + current_len,
+                     sizeof(conn_info->host_ip) - current_len,
+                     "%%%lu", addr6->sin6_scope_id);
         }
     } else {
         inet_ntop(AF_INET, &((struct sockaddr_in *)&conn_info->dest_addr)->sin_addr,
@@ -566,6 +573,14 @@ void stratum_task(void * pvParameters)
                     xTaskNotifyGive(GLOBAL_STATE->create_jobs_task_handle);
                 }
                 decode_mining_notification(GLOBAL_STATE, stratum_api_v1_message.mining_notification);
+
+                // Clusteraxe: Distribute work to slave devices
+#if CLUSTER_ENABLED && CLUSTER_IS_MASTER
+                cluster_master_on_mining_notify(GLOBAL_STATE,
+                                                 stratum_api_v1_message.mining_notification,
+                                                 GLOBAL_STATE->extranonce_str,
+                                                 GLOBAL_STATE->extranonce_2_len);
+#endif
             } else if (stratum_api_v1_message.method == MINING_SET_DIFFICULTY) {
                 ESP_LOGI(TAG, "Set pool difficulty: %ld", stratum_api_v1_message.new_difficulty);
                 GLOBAL_STATE->pool_difficulty = stratum_api_v1_message.new_difficulty;

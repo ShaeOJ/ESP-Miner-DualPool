@@ -12,6 +12,13 @@
 #include "hashrate_monitor_task.h"
 #include "asic.h"
 
+// Clusteraxe integration
+#include "cluster_config.h"
+#if CLUSTER_ENABLED && CLUSTER_IS_SLAVE
+#include "cluster_integration.h"
+#include "cluster.h"
+#endif
+
 static const char *TAG = "asic_result";
 
 void ASIC_result_task(void *pvParameters)
@@ -56,52 +63,68 @@ void ASIC_result_task(void *pvParameters)
 
         if (nonce_diff >= active_job->pool_diff)
         {
-            // Use the job's pool_id to determine which pool to submit to
-            // This ensures we submit to the pool that issued this job
-            uint8_t target_pool = active_job->pool_id;
+#if CLUSTER_ENABLED && CLUSTER_IS_SLAVE
+            // In slave mode, route shares to cluster master instead of pool
+            if (cluster_slave_should_skip_stratum()) {
+                // Intercept and send to master via cluster protocol
+                cluster_slave_intercept_share(GLOBAL_STATE,
+                                               job_id,
+                                               asic_result->nonce,
+                                               active_job->ntime,
+                                               asic_result->rolled_version ^ active_job->version,
+                                               active_job->extranonce2);
+                ESP_LOGI(TAG, "Share routed to cluster master: job=%s, nonce=0x%08lX",
+                         active_job->jobid, (unsigned long)asic_result->nonce);
+            } else
+#endif
+            {
+                // Use the job's pool_id to determine which pool to submit to
+                // This ensures we submit to the pool that issued this job
+                uint8_t target_pool = active_job->pool_id;
 
-            int sock;
-            int *send_uid;
-            char *user;
-            int current_uid;
+                int sock;
+                int *send_uid;
+                char *user;
+                int current_uid;
 
-            if (target_pool == POOL_SECONDARY && stratum_is_secondary_connected(GLOBAL_STATE)) {
-                // Submit to secondary pool
-                sock = GLOBAL_STATE->sock_secondary;
-                send_uid = &GLOBAL_STATE->send_uid_secondary;
-                user = GLOBAL_STATE->SYSTEM_MODULE.fallback_pool_user;
-                current_uid = (*send_uid)++;
-                STRATUM_V1_stamp_tx_secondary(current_uid);  // Track response time for secondary
-                ESP_LOGI(TAG, "Submitting share to SECONDARY pool (job: %s, uid: %d)", active_job->jobid, current_uid);
-            } else {
-                // Submit to primary pool (or fallback in failover mode)
-                sock = GLOBAL_STATE->sock;
-                send_uid = &GLOBAL_STATE->send_uid;
-                user = GLOBAL_STATE->SYSTEM_MODULE.is_using_fallback ?
-                       GLOBAL_STATE->SYSTEM_MODULE.fallback_pool_user :
-                       GLOBAL_STATE->SYSTEM_MODULE.pool_user;
-                target_pool = POOL_PRIMARY;  // Ensure we track as primary
-                current_uid = (*send_uid)++;
-                STRATUM_V1_stamp_tx(current_uid);  // Track response time for primary
-                ESP_LOGI(TAG, "Submitting share to PRIMARY pool (job: %s, uid: %d)", active_job->jobid, current_uid);
-            }
-
-            int ret = STRATUM_V1_submit_share(
-                sock,
-                current_uid,
-                user,
-                active_job->jobid,
-                active_job->extranonce2,
-                active_job->ntime,
-                asic_result->nonce,
-                asic_result->rolled_version ^ active_job->version);
-
-            if (ret < 0) {
-                ESP_LOGI(TAG, "Unable to write share to socket. Closing connection. Ret: %d (errno %d: %s)", ret, errno, strerror(errno));
-                if (target_pool == POOL_SECONDARY) {
-                    stratum_close_secondary_connection(GLOBAL_STATE);
+                if (target_pool == POOL_SECONDARY && stratum_is_secondary_connected(GLOBAL_STATE)) {
+                    // Submit to secondary pool
+                    sock = GLOBAL_STATE->sock_secondary;
+                    send_uid = &GLOBAL_STATE->send_uid_secondary;
+                    user = GLOBAL_STATE->SYSTEM_MODULE.fallback_pool_user;
+                    current_uid = (*send_uid)++;
+                    STRATUM_V1_stamp_tx_secondary(current_uid);  // Track response time for secondary
+                    ESP_LOGI(TAG, "Submitting share to SECONDARY pool (job: %s, uid: %d)", active_job->jobid, current_uid);
                 } else {
-                    stratum_close_connection(GLOBAL_STATE);
+                    // Submit to primary pool (or fallback in failover mode)
+                    sock = GLOBAL_STATE->sock;
+                    send_uid = &GLOBAL_STATE->send_uid;
+                    user = GLOBAL_STATE->SYSTEM_MODULE.is_using_fallback ?
+                           GLOBAL_STATE->SYSTEM_MODULE.fallback_pool_user :
+                           GLOBAL_STATE->SYSTEM_MODULE.pool_user;
+                    target_pool = POOL_PRIMARY;  // Ensure we track as primary
+                    current_uid = (*send_uid)++;
+                    STRATUM_V1_stamp_tx(current_uid);  // Track response time for primary
+                    ESP_LOGI(TAG, "Submitting share to PRIMARY pool (job: %s, uid: %d)", active_job->jobid, current_uid);
+                }
+
+                int ret = STRATUM_V1_submit_share(
+                    sock,
+                    current_uid,
+                    user,
+                    active_job->jobid,
+                    active_job->extranonce2,
+                    active_job->ntime,
+                    asic_result->nonce,
+                    asic_result->rolled_version ^ active_job->version);
+
+                if (ret < 0) {
+                    ESP_LOGI(TAG, "Unable to write share to socket. Closing connection. Ret: %d (errno %d: %s)", ret, errno, strerror(errno));
+                    if (target_pool == POOL_SECONDARY) {
+                        stratum_close_secondary_connection(GLOBAL_STATE);
+                    } else {
+                        stratum_close_connection(GLOBAL_STATE);
+                    }
                 }
             }
         }

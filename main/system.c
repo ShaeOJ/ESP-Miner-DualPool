@@ -50,9 +50,9 @@ void SYSTEM_init_system(GlobalState * GLOBAL_STATE)
     module->block_found = false;
     
     // Initialize network address strings
-    strcpy(module->ip_addr_str, "");
-    strcpy(module->ipv6_addr_str, "");
-    strcpy(module->wifi_status, "Initializing...");
+    snprintf(module->ip_addr_str, sizeof(module->ip_addr_str), "%s", "");
+    snprintf(module->ipv6_addr_str, sizeof(module->ipv6_addr_str), "%s", "");
+    snprintf(module->wifi_status, sizeof(module->wifi_status), "%s", "Initializing...");
     
     // set the pool url
     module->pool_url = nvs_config_get_string(NVS_CONFIG_STRATUM_URL);

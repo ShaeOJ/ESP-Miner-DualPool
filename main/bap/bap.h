@@ -24,6 +24,7 @@
 extern QueueHandle_t bap_uart_send_queue;
 extern SemaphoreHandle_t bap_uart_send_mutex;
 extern SemaphoreHandle_t bap_subscription_mutex;
+extern SemaphoreHandle_t bap_state_mutex;
 extern GlobalState *bap_global_state;
 
 #ifdef __cplusplus

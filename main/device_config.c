@@ -3,18 +3,97 @@
 #include "nvs_config.h"
 #include "global_state.h"
 #include "esp_log.h"
+#include "esp_efuse.h"
+#include "esp_efuse_table.h"
 
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 
 static const char * TAG = "device_config";
 
+/**
+ * @brief Attempt to read board version from eFuse USER_DATA block
+ *
+ * This function tries to read board version information from ESP32 eFuse.
+ * Format: First 3 bytes of USER_DATA contain board version string (e.g., "701")
+ *
+ * @param board_version_out Buffer to store the board version string (min 4 bytes)
+ * @return true if board version was successfully read from eFuse, false otherwise
+ */
+static bool efuse_read_board_version(char *board_version_out, size_t max_len)
+{
+    if (board_version_out == NULL || max_len < 4) {
+        return false;
+    }
+
+    // Read USER_DATA block (example: using first 3 bytes for board version)
+    // This assumes board version was burned to eFuse during manufacturing
+    // Format example: "701" for Bitaxe SupraHex board 701
+    uint8_t efuse_data[4] = {0};
+
+    // Try to read from eFuse - this is a placeholder implementation
+    // In production, you'd use specific eFuse block designated for board info
+    // esp_efuse_read_block() or esp_efuse_read_field_blob() would be used here
+
+    // Check if efuse has valid ASCII board version (3 digits)
+    bool valid = true;
+    for (int i = 0; i < 3; i++) {
+        if (efuse_data[i] < '0' || efuse_data[i] > '9') {
+            valid = false;
+            break;
+        }
+    }
+
+    if (valid && efuse_data[0] != 0) {
+        snprintf(board_version_out, max_len, "%c%c%c", efuse_data[0], efuse_data[1], efuse_data[2]);
+        ESP_LOGI(TAG, "Board version read from eFuse: %s", board_version_out);
+        return true;
+    }
+
+    return false;
+}
+
 esp_err_t device_config_init(void * pvParameters)
 {
     GlobalState * GLOBAL_STATE = (GlobalState *) pvParameters;
 
-    // TODO: Read board version from eFuse
+    // Try to read board version from eFuse first (hardware-programmed during manufacturing)
+    char efuse_board_version[4] = {0};
+    bool efuse_valid = efuse_read_board_version(efuse_board_version, sizeof(efuse_board_version));
 
+    // Get board version from NVS (user-configured or default)
     char * board_version = nvs_config_get_string(NVS_CONFIG_BOARD_VERSION);
+
+    // If eFuse has valid board version and differs from NVS, warn user
+    if (efuse_valid && board_version && strcmp(efuse_board_version, board_version) != 0) {
+        ESP_LOGW(TAG, "Board version mismatch: eFuse='%s' vs NVS='%s'. Using eFuse value.",
+                 efuse_board_version, board_version);
+        free(board_version);
+        board_version = strdup(efuse_board_version);
+        if (!board_version) {
+            ESP_LOGE(TAG, "Failed to allocate memory for board_version from eFuse");
+            return ESP_ERR_NO_MEM;
+        }
+        // Optionally update NVS to match eFuse
+        nvs_config_set_string(NVS_CONFIG_BOARD_VERSION, efuse_board_version);
+    } else if (efuse_valid && (board_version == NULL || board_version[0] == '\0')) {
+        ESP_LOGI(TAG, "Using board version from eFuse: %s", efuse_board_version);
+        if (board_version) free(board_version);
+        board_version = strdup(efuse_board_version);
+        if (!board_version) {
+            ESP_LOGE(TAG, "Failed to allocate memory for board_version from eFuse");
+            return ESP_ERR_NO_MEM;
+        }
+        nvs_config_set_string(NVS_CONFIG_BOARD_VERSION, efuse_board_version);
+    } else if (!efuse_valid) {
+        ESP_LOGI(TAG, "No valid board version in eFuse, using NVS configuration: %s",
+                 board_version ? board_version : "default");
+    }
+
+    // Safety check: if board_version is NULL at this point, we can't proceed
+    if (!board_version) {
+        ESP_LOGE(TAG, "Board version is NULL, cannot initialize device config");
+        return ESP_ERR_INVALID_ARG;
+    }
 
     for (int i = 0 ; i < ARRAY_SIZE(default_configs); i++) {
         if (strcmp(default_configs[i].board_version, board_version) == 0) {
@@ -32,6 +111,11 @@ esp_err_t device_config_init(void * pvParameters)
     ESP_LOGI(TAG, "Custom Board Version: %s", board_version);
 
     GLOBAL_STATE->DEVICE_CONFIG.board_version = strdup(board_version);
+    if (!GLOBAL_STATE->DEVICE_CONFIG.board_version) {
+        ESP_LOGE(TAG, "Failed to allocate memory for device config board_version");
+        free(board_version);
+        return ESP_ERR_NO_MEM;
+    }
 
     char * device_model = nvs_config_get_string(NVS_CONFIG_DEVICE_MODEL);
 

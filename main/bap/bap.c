@@ -18,6 +18,7 @@ static const char *TAG = "BAP";
 QueueHandle_t bap_uart_send_queue = NULL;
 SemaphoreHandle_t bap_uart_send_mutex = NULL;
 SemaphoreHandle_t bap_subscription_mutex = NULL;
+SemaphoreHandle_t bap_state_mutex = NULL;
 GlobalState *bap_global_state = NULL;
 
 esp_err_t BAP_init(GlobalState *state) {
@@ -37,11 +38,19 @@ esp_err_t BAP_init(GlobalState *state) {
         ESP_LOGE(TAG, "Failed to create subscription mutex");
         return ESP_ERR_NO_MEM;
     }
-    
+
     bap_uart_send_mutex = xSemaphoreCreateMutex();
     if (bap_uart_send_mutex == NULL) {
         ESP_LOGE(TAG, "Failed to create UART send mutex");
         vSemaphoreDelete(bap_subscription_mutex);
+        return ESP_ERR_NO_MEM;
+    }
+
+    bap_state_mutex = xSemaphoreCreateMutex();
+    if (bap_state_mutex == NULL) {
+        ESP_LOGE(TAG, "Failed to create state mutex");
+        vSemaphoreDelete(bap_subscription_mutex);
+        vSemaphoreDelete(bap_uart_send_mutex);
         return ESP_ERR_NO_MEM;
     }
 
@@ -50,6 +59,7 @@ esp_err_t BAP_init(GlobalState *state) {
         ESP_LOGE(TAG, "Failed to create UART send queue");
         vSemaphoreDelete(bap_subscription_mutex);
         vSemaphoreDelete(bap_uart_send_mutex);
+        vSemaphoreDelete(bap_state_mutex);
         return ESP_ERR_NO_MEM;
     }
     
